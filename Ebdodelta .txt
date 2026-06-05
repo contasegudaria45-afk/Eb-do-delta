@@ -1,3 +1,40 @@
+-- ═══════════════════════════════
+--  SISTEMA DE KEY — DELTA
+-- ═══════════════════════════════
+local KEY_URL = "https://gist.githubusercontent.com/contasegudaria45-afk/d7007842b5e723e64913482c9ab43dec/raw/keys.json"
+
+local function CheckKey(userKey)
+    local ok, raw = pcall(game.HttpGet, game, KEY_URL)
+    if not ok or not raw then
+        return false, "Sem conexão"
+    end
+    for entry in raw:gmatch('{[^}]+}') do
+        local k = entry:match('"key"%s*:%s*"([^"]+)"')
+        if k == userKey then
+            local exp = entry:match('"expires"%s*:%s*(%d+)')
+            if exp then
+                if os.time() > tonumber(exp) then
+                    return false, "Key expirada!"
+                end
+            end
+            return true, "OK"
+        end
+    end
+    return false, "Key inválida!"
+end
+
+-- ═══════════════════════════════
+--  COLE SUA KEY AQUI:
+-- ═══════════════════════════════
+local MINHA_KEY = "DELTA-XXXX-XXXX-XXXX"
+
+local valida, msg = CheckKey(MINHA_KEY)
+if not valida then
+    warn("❌ " .. msg)
+    return
+end
+print("✅ Key válida! Iniciando script...")
+-- COLE O RESTO DO SEU SCRIPT ABAIXO
 --[[
     ███╗   ██╗███████╗██╗  ██╗██╗   ██╗███████╗
     ████╗  ██║██╔════╝╚██╗██╔╝██║   ██║██╔════╝

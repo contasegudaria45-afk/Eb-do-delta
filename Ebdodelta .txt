@@ -1,53 +1,22 @@
--- ═══════════════════════════════
---  SISTEMA DE KEY — DELTA
--- ═══════════════════════════════
+-- ══════════════════════════════════════════════
+--  SISTEMA DE KEY — DELTA (CONFIGURAÇÃO DE URL)
+-- ══════════════════════════════════════════════
 local KEY_URL = "https://gist.githubusercontent.com/contasegudaria45-afk/d7007842b5e723e64913482c9ab43dec/raw/keys.json"
+local NOME_ARQUIVO = "OmegaKey_Saved.txt"
+local KeyExpirationTimestamp = 0
 
-local function CheckKey(userKey)
-    local ok, raw = pcall(game.HttpGet, game, KEY_URL)
-    if not ok or not raw then
-        return false, "Sem conexão"
-    end
-    for entry in raw:gmatch('{[^}]+}') do
-        local k = entry:match('"key"%s*:%s*"([^"]+)"')
-        if k == userKey then
-            local exp = entry:match('"expires"%s*:%s*(%d+)')
-            if exp then
-                if os.time() > tonumber(exp) then
-                    return false, "Key expirada!"
-                end
-            end
-            return true, "OK"
-        end
-    end
-    return false, "Key inválida!"
-end
-
--- ═══════════════════════════════
---  COLE SUA KEY AQUI:
--- ═══════════════════════════════
-local MINHA_KEY = "DELTA-XXXX-XXXX-XXXX"
-
-local valida, msg = CheckKey(MINHA_KEY)
-if not valida then
-    warn("❌ " .. msg)
-    return
-end
-print("✅ Key válida! Iniciando script...")
--- COLE O RESTO DO SEU SCRIPT ABAIXO
 --[[
     ███╗   ██╗███████╗██╗  ██╗██╗   ██╗███████╗
     ████╗  ██║██╔════╝╚██╗██╔╝██║   ██║██╔════╝
     ██╔██╗ ██║█████╗   ╚███╔╝ ██║   ██║███████╗
     ██║╚██╗██║██╔══╝   ██╔██╗ ██║   ██║╚════██║
     ██║ ╚████║███████╗██╔╝ ██╗╚██████╔╝███████║
-    ╚═╝  ╚═══╝╚══════╝╚═╝  ╚═╝ ╚═════╝ ╚══════╝
 
     OMEGA SUPREMACY  •  v10  (NEXUS INTERFACE)
     Interface NEXUS + Todas as funções OMEGA
     Delta Mobile Compatible ✓
     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-    MODIFICADO: Script EB do Delta
+    MODIFICADO: Script EB do Delta com Sistema Dinâmico de Key UI + AutoSave + Tempo Restante
 ]]
 
 -- ══════════════════════════════════════════════
@@ -220,6 +189,31 @@ local function isDrag(i)
 end
 
 -- ══════════════════════════════════════════════
+--  FUNÇÃO PROVEDORA DE VERIFICAÇÃO DE KEY
+-- ══════════════════════════════════════════════
+local function CheckKey(userKey)
+    local ok, raw = pcall(game.HttpGet, game, KEY_URL)
+    if not ok or not raw then
+        return false, "Sem conexão com o servidor de validação"
+    end
+    for entry in raw:gmatch('{[^}]+}') do
+        local k = entry:match('"key"%s*:%s*"([^"]+)"')
+        if k == userKey then
+            local exp = entry:match('"expires"%s*:%s*(%d+)')
+            if exp then
+                local expTime = tonumber(exp)
+                if os.time() > expTime then
+                    return false, "Esta key já expirou!"
+                end
+                return true, expTime
+            end
+            return true, 9999999999
+        end
+    end
+    return false, "Key inválida ou incorreta!"
+end
+
+-- ══════════════════════════════════════════════
 --  SISTEMA DE NOTIFICAÇÕES
 -- ══════════════════════════════════════════════
 local NotifContainer
@@ -335,7 +329,7 @@ local function CreateMobileToggle()
 end
 
 -- ══════════════════════════════════════════════
---  JANELA PRINCIPAL
+--  JANELA PRINCIPAL (NEXUS INTERFACE)
 -- ══════════════════════════════════════════════
 function BuildMainWindow()
     if Win then return end
@@ -572,7 +566,6 @@ function BuildMainWindow()
             Tween(bg, Quick(0.22), {BackgroundColor3 = on and CONFIG.Accent or Color3.fromRGB(40,46,68)}):Play()
             Tween(dot, Quick(0.22), {Position = on and UDim2.new(1,-16,0.5,-7) or UDim2.new(0,2,0.5,-7)}):Play()
             
-            -- AJUSTE 5: EFEITO VISUAL DE ATIVAÇÃO SIMULANDO INJEÇÃO
             if on then
                 task.spawn(function()
                     local backup = StatusText.Text
@@ -1030,6 +1023,20 @@ function BuildMainWindow()
     end, 4)
     InfoLabel(pages["FPS"], "ℹ Força material liso em todas as partes — max redução GPU Mobile.", 5)
 
+    -- AJUSTE 2: CONSTRUÇÃO DA PÁGINA DA CHAVE
+    pages["Chave"] = MakePage("Chave")
+    Section(pages["Chave"], "── MONITORAMENTO DA CHAVE ──", 1)
+    local timeKeyLbl = InfoLabel(pages["Chave"], "Tempo Restante: Calculando...", 2)
+    timeKeyLbl.TextColor3 = CONFIG.Accent
+    Section(pages["Chave"], "── GERENCIAMENTO LARGAR ──", 3)
+    Button(pages["Chave"], "🗑️  Excluir Chave Salva", CONFIG.Danger, function()
+        if writefile then
+            pcall(writefile, NOME_ARQUIVO, "")
+            Notify("Sistema de Key", "Sua chave foi esquecida localmente. No próximo rejoin precisará digitar!", 4)
+        end
+    end, 4)
+    InfoLabel(pages["Chave"], "ℹ Use isso se quiser trocar de Key ou deslogar.", 5)
+
     pages["Sistema"] = MakePage("Sistema")
     Section(pages["Sistema"], "── MONITORAMENTO DO ENGINE ──", 1)
     local fpsLbl = InfoLabel(pages["Sistema"], "FPS: --  |  Uptime: 0s  |  Otimizados: 0", CONFIG.Accent, 2)
@@ -1056,11 +1063,26 @@ function BuildMainWindow()
             pcall(function()
                 fpsLbl.Text = "FPS: "..fps.."  |  Uptime: "..uptime.."s  |  Opt: "..optimizedCount
             end)
+
+            -- AJUSTE 3: LOOP DINÂMICO DO TEMPO DA KEY NA TELA
+            pcall(function()
+                if KeyExpirationTimestamp and timeKeyLbl and timeKeyLbl.Parent then
+                    local segundosRestantes = KeyExpirationTimestamp - os.time()
+                    if segundosRestantes <= 0 then
+                        timeKeyLbl.Text = "Status da Chave: Expirou ou Inválida!"
+                    else
+                        local dias = math.floor(segundosRestantes / 86400)
+                        local horas = math.floor((segundosRestantes % 86400) / 3600)
+                        local minutos = math.floor((segundosRestantes % 3600) / 60)
+                        timeKeyLbl.Text = string.format("Tempo Restante: %dd %dh %dm", dias, horas, minutos)
+                    end
+                end
+            end)
         end
     end)
 
     -- ════════════════════════════════════════
-    --  AJUSTE 2: EMOJIS NAS ABAS DA SIDEBAR
+    --  ABAS DA SIDEBAR
     -- ════════════════════════════════════════
     local TABS = {
         {name="Jogador", icon="👤 ◈", lbl="Jogador"},
@@ -1070,6 +1092,7 @@ function BuildMainWindow()
         {name="Visuals", icon="✨ ◆", lbl="Visuals"},
         {name="Vector",  icon="🧱 ⊟", lbl="Vector"},
         {name="FPS",     icon="⚡ ⚡", lbl="FPS Boost"},
+        {name="Chave",   icon="🔑 ⏳", lbl="Chave Info"},
         {name="Sistema", icon="⚙️ ⚙", lbl="Sistema"},
     }
 
@@ -1142,10 +1165,173 @@ function BuildMainWindow()
 end
 
 -- ══════════════════════════════════════════════
---  ANIMAÇÃO DE INTRO (REESTRUTURADA: ESTILO RAYFIELD)
+--  INTERFACE INTERATIVA DO SISTEMA DE KEY
+-- ══════════════════════════════════════════════
+local KeyWin
+function BuildKeyWindow()
+    if KeyWin then return end
+
+    KeyWin = Instance.new("Frame")
+    KeyWin.Name = "OmegaKeyWindow"
+    KeyWin.AnchorPoint = Vector2.new(0.5, 0.5)
+    KeyWin.Size = UDim2.new(0, 360, 0, 210)
+    KeyWin.Position = UDim2.new(0.5, 0, -0.5, 0)
+    KeyWin.BackgroundColor3 = CONFIG.BG
+    KeyWin.BackgroundTransparency = 0.05
+    KeyWin.ZIndex = 100
+    KeyWin.Parent = ScreenGui
+    Corner(KeyWin, 14)
+    Stroke(KeyWin, 1, CONFIG.Accent, 0.4)
+    Shadow(KeyWin, 40)
+
+    local TopBar = Instance.new("Frame")
+    TopBar.Size = UDim2.new(1, 0, 0, 40)
+    TopBar.BackgroundColor3 = CONFIG.BGSecond
+    TopBar.ZIndex = 105
+    TopBar.Parent = KeyWin
+    Corner(TopBar, 14)
+
+    local TopFix = Instance.new("Frame")
+    TopFix.Size = UDim2.new(1, 0, 0.5, 0)
+    TopFix.Position = UDim2.new(0, 0, 0.5, 0)
+    TopFix.BackgroundColor3 = CONFIG.BGSecond
+    TopFix.BorderSizePixel = 0
+    TopFix.ZIndex = 105
+    TopFix.Parent = TopBar
+
+    local TitleLbl = Instance.new("TextLabel")
+    TitleLbl.Size = UDim2.new(1, -30, 1, 0)
+    TitleLbl.Position = UDim2.new(0, 15, 0, 0)
+    TitleLbl.BackgroundTransparency = 1
+    TitleLbl.Text = "VERIFICAÇÃO DE CHAVE OMEGA"
+    TitleLbl.TextColor3 = CONFIG.TextPrimary
+    TitleLbl.Font = Enum.Font.GothamBlack
+    TitleLbl.TextSize = 12
+    TitleLbl.TextXAlignment = Enum.TextXAlignment.Left
+    TitleLbl.ZIndex = 106
+    TitleLbl.Parent = TopBar
+
+    local drag, dragInp, dragStart_w, startPos_w = false, nil, nil, nil
+    KeyWin.InputBegan:Connect(function(i)
+        if isInput(i) then
+            drag = true; dragStart_w = i.Position; startPos_w = KeyWin.Position
+            i.Changed:Connect(function()
+                if i.UserInputState == Enum.UserInputState.End then drag = false end
+            end)
+        end
+    end)
+    KeyWin.InputChanged:Connect(function(i) if isDrag(i) then dragInp = i end end)
+    UIS.InputChanged:Connect(function(i)
+        if i == dragInp and drag then
+            local d = i.Position - dragStart_w
+            KeyWin.Position = UDim2.new(startPos_w.X.Scale, startPos_w.X.Offset+d.X, startPos_w.Y.Scale, startPos_w.Y.Offset+d.Y)
+        end
+    end)
+
+    local DescLbl = Instance.new("TextLabel")
+    DescLbl.Size = UDim2.new(1, -30, 0, 32)
+    DescLbl.Position = UDim2.new(0, 15, 0, 50)
+    DescLbl.BackgroundTransparency = 1
+    DescLbl.Text = "O script encontra-se bloqueado. Para liberá-lo, insira abaixo a chave ativa gerada no seu painel."
+    DescLbl.TextColor3 = CONFIG.TextSub
+    DescLbl.Font = Enum.Font.Gotham
+    DescLbl.TextSize = 11
+    DescLbl.TextWrapped = true
+    DescLbl.TextXAlignment = Enum.TextXAlignment.Left
+    DescLbl.ZIndex = 106
+    DescLbl.Parent = KeyWin
+
+    local inputBg = Instance.new("Frame")
+    inputBg.Size = UDim2.new(1, -30, 0, 36)
+    inputBg.Position = UDim2.new(0, 15, 0, 92)
+    inputBg.BackgroundColor3 = Color3.fromRGB(18, 22, 44)
+    inputBg.ZIndex = 106
+    inputBg.Parent = KeyWin
+    Corner(inputBg, 8)
+    Stroke(inputBg, 1, CONFIG.Accent, 0.5)
+
+    local tb = Instance.new("TextBox")
+    tb.Size = UDim2.new(1, -20, 1, 0)
+    tb.Position = UDim2.new(0, 10, 0, 0)
+    tb.BackgroundTransparency = 1
+    tb.Text = ""
+    tb.PlaceholderText = "Insira sua Key aqui..."
+    tb.PlaceholderColor3 = CONFIG.TextSub
+    tb.TextColor3 = CONFIG.TextPrimary
+    tb.Font = Enum.Font.Gotham
+    tb.TextSize = 11
+    tb.TextXAlignment = Enum.TextXAlignment.Left
+    tb.ClearTextOnFocus = false
+    tb.ZIndex = 107
+    tb.Parent = inputBg
+
+    local StatusLbl = Instance.new("TextLabel")
+    StatusLbl.Size = UDim2.new(1, -30, 0, 20)
+    StatusLbl.Position = UDim2.new(0, 15, 0, 134)
+    StatusLbl.BackgroundTransparency = 1
+    StatusLbl.Text = "Aguardando chave..."
+    StatusLbl.TextColor3 = CONFIG.TextSub
+    StatusLbl.Font = Enum.Font.GothamBold
+    StatusLbl.TextSize = 10
+    StatusLbl.ZIndex = 106
+    StatusLbl.Parent = KeyWin
+
+    local BtnVerificar = Instance.new("TextButton")
+    BtnVerificar.Size = UDim2.new(1, -30, 0, 36)
+    BtnVerificar.Position = UDim2.new(0, 15, 0, 158)
+    BtnVerificar.BackgroundColor3 = CONFIG.Accent
+    BtnVerificar.Text = "ATIVAR SCRIPT AGORA"
+    BtnVerificar.TextColor3 = Color3.new(1, 1, 1)
+    BtnVerificar.Font = Enum.Font.GothamBold
+    BtnVerificar.TextSize = 11
+    BtnVerificar.ZIndex = 106
+    BtnVerificar.Parent = KeyWin
+    Corner(BtnVerificar, 9)
+
+    Tween(KeyWin, TweenInfo.new(0.5, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {Position = UDim2.new(0.5, 0, 0.5, 0)}):Play()
+
+    BtnVerificar.MouseButton1Click:Connect(function()
+        local inputKey = tb.Text
+        if inputKey == "" or inputKey == " " then
+            StatusLbl.TextColor3 = CONFIG.Warning
+            StatusLbl.Text = "⚠️ Por favor, digite ou cole algo antes!"
+            return
+        end
+
+        StatusLbl.TextColor3 = CONFIG.Warning
+        StatusLbl.Text = "Verificando nos servidores... Aguarde."
+        task.wait(0.4)
+
+        local valida, infoExpiracao = CheckKey(inputKey)
+        if valida then
+            -- AJUSTE 4: SALVA SE TIVER CORRETO
+            KeyExpirationTimestamp = infoExpiracao
+            if writefile then
+                pcall(writefile, NOME_ARQUIVO, inputKey)
+            end
+
+            StatusLbl.TextColor3 = CONFIG.Success
+            StatusLbl.Text = "✅ Autenticação aceita! Carregando painel principal..."
+            Tween(BtnVerificar, Quick(0.2), {BackgroundColor3 = CONFIG.Success}):Play()
+            task.wait(0.8)
+            
+            local out = Tween(KeyWin, TweenInfo.new(0.4, Enum.EasingStyle.Back, Enum.EasingDirection.In), {Position = UDim2.new(0.5, 0, -0.5, 0)})
+            out:Play()
+            out.Completed:Connect(function()
+                KeyWin:Destroy()
+                BuildMainWindow()
+            end)
+        else
+            StatusLbl.TextColor3 = CONFIG.Danger
+            StatusLbl.Text = "❌ " .. msg
+        end
+    end)
+end
+
+-- ══════════════════════════════════════════════
+--  ANIMAÇÃO DE INTRO (ESTILO RAYFIELD)
 -- ══════════════════════════════════════════════
 local function PlayIntroAnimation()
-    -- ETAPA 1 & 2: GUI Independente e Overlay Preto/Escuro
     local IntroGui = Instance.new("ScreenGui")
     IntroGui.Name = "RayfieldIntroGui"
     IntroGui.ResetOnSpawn = false
@@ -1162,25 +1348,23 @@ local function PlayIntroAnimation()
 
     local Overlay = Instance.new("Frame")
     Overlay.Size = UDim2.new(1, 0, 1, 0)
-    Overlay.BackgroundColor3 = Color3.fromRGB(15, 15, 15) -- Fundo escuro conforme instrução
+    Overlay.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
     Overlay.BackgroundTransparency = 1
     Overlay.ZIndex = 1000
     Overlay.Parent = IntroGui
 
-    -- ETAPA 3: Nome do Script no centro
     local Title = Instance.new("TextLabel")
     Title.Text = CONFIG.ScriptName:upper()
     Title.Font = Enum.Font.GothamBlack
     Title.TextColor3 = Color3.fromRGB(255, 255, 255)
     Title.TextTransparency = 1
     Title.BackgroundTransparency = 1
-    Title.Size = UDim2.new(0, 380, 0, 45) -- Começa ligeiramente menor para efeito de crescimento
+    Title.Size = UDim2.new(0, 380, 0, 45)
     Title.Position = UDim2.new(0.5, -190, 0.45, -22)
     Title.TextScaled = true
     Title.ZIndex = 1001
     Title.Parent = Overlay
 
-    -- ETAPA 4: Texto de Inicialização (Abaixo do título)
     local Status = Instance.new("TextLabel")
     Status.Text = "Inicializando..."
     Status.Font = Enum.Font.Gotham
@@ -1193,7 +1377,6 @@ local function PlayIntroAnimation()
     Status.ZIndex = 1001
     Status.Parent = Overlay
 
-    -- ETAPA 5: Barra de Progresso
     local BarBG = Instance.new("Frame")
     BarBG.Size = UDim2.new(0, 300, 0, 4)
     BarBG.Position = UDim2.new(0.5, -150, 0.55, 40)
@@ -1211,13 +1394,10 @@ local function PlayIntroAnimation()
     BarFill.ZIndex = 1002
     BarFill.Parent = BarBG
 
-    -- Lógica de Animação e Fade In/Out
     task.spawn(function()
-        -- Fade In do fundo
         Tween(Overlay, Quick(0.5), {BackgroundTransparency = 0}):Play()
         task.wait(0.6)
 
-        -- Fade In e Crescimento do Título
         Tween(Title, Quick(1, Enum.EasingStyle.Cubic, Enum.EasingDirection.Out), {
             TextTransparency = 0,
             Size = UDim2.new(0, 400, 0, 50),
@@ -1225,13 +1405,11 @@ local function PlayIntroAnimation()
         }):Play()
         task.wait(0.8)
 
-        -- Fade In dos elementos de progresso
         Tween(Status, Quick(0.5), {TextTransparency = 0}):Play()
         Tween(BarBG, Quick(0.5), {BackgroundTransparency = 0}):Play()
         Tween(BarFill, Quick(0.5), {BackgroundTransparency = 0}):Play()
         task.wait(0.5)
 
-        -- Passos da Inicialização
         local steps = {
             {msg = "Carregando Interface...", pct = 0.2},
             {msg = "Verificando Recursos...", pct = 0.4},
@@ -1243,30 +1421,43 @@ local function PlayIntroAnimation()
 
         for _, step in ipairs(steps) do
             Status.Text = step.msg
-            -- Crescimento suave da barra para a porcentagem alvo
             Tween(BarFill, Quick(0.6, Enum.EasingStyle.Sine), {Size = UDim2.new(step.pct, 0, 1, 0)}):Play()
-            task.wait(0.7)
+            task.wait(0.4)
         end
 
-        -- ETAPA 6: Finalização
         Status.Text = "Carregamento concluído."
-        task.wait(1.2)
+        task.wait(0.6)
 
-        -- ETAPA 7: Fade Out
         Tween(Status, Quick(0.5), {TextTransparency = 1}):Play()
         Tween(BarFill, Quick(0.5), {BackgroundTransparency = 1}):Play()
         Tween(BarBG, Quick(0.5), {BackgroundTransparency = 1}):Play()
-        task.wait(0.3)
+        task.wait(0.2)
         Tween(Title, Quick(0.5), {TextTransparency = 1}):Play()
-        task.wait(0.3)
-        Tween(Overlay, Quick(0.8), {BackgroundTransparency = 1}):Play()
-        task.wait(0.8)
+        task.wait(0.2)
+        Tween(Overlay, Quick(0.6), {BackgroundTransparency = 1}):Play()
+        task.wait(0.6)
 
-        -- Limpeza da Camada de Intro
         IntroGui:Destroy()
 
-        -- ETAPA 8: Abrir Interface Principal SOMENTE AGORA
-        BuildMainWindow()
+        -- AJUSTE 5: PONTO DE ENTRADA INTELIGENTE (VERIFICA SE EXISTE E VALIDA ANTES DE ABRIR)
+        local keySalva = nil
+        if readfile and isfile and isfile(NOME_ARQUIVO) then
+            pcall(function() keySalva = readfile(NOME_ARQUIVO) end)
+        end
+
+        if keySalva and keySalva ~= "" and keySalva ~= " " then
+            local valida, infoExpiracao = CheckKey(keySalva)
+            if valida then
+                KeyExpirationTimestamp = infoExpiracao
+                Notify("Auto-Login", "Chave salva validada com sucesso!", 4)
+                BuildMainWindow()
+            else
+                -- Chave expirou no tempo ou você deletou ela do Gist, joga pro painel de login!
+                BuildKeyWindow()
+            end
+        else
+            BuildKeyWindow()
+        end
     end)
 end
 
@@ -1591,7 +1782,7 @@ if hookmetamethod and typeof(hookmetamethod) == "function" then
 end
 
 -- ══════════════════════════════════════════════
---  FOV CIRCLE — GUI (AJUSTE 3: MELHORIA VISUAL DE PULSO)
+--  FOV CIRCLE — GUI
 -- ══════════════════════════════════════════════
 local FOVGui = Instance.new("ScreenGui")
 FOVGui.Name = "OmegaFOV";
@@ -1616,7 +1807,6 @@ RunService.RenderStepped:Connect(function()
         if sx > 0 and sy > 0 then
             CircleFrame.Position = UDim2.new(0,sx/2,0,sy/2)
             
-            -- Pulso estético e gradiente sutil sem modificar a lógica original do raio real
             local visualPulse = math.sin(os.clock() * 4) * 3
             local dRadius = OmegaState.FOV.Radius + visualPulse
             
@@ -1632,7 +1822,7 @@ RunService.RenderStepped:Connect(function()
 end)
 
 -- ══════════════════════════════════════════════
---  ESP — SISTEMA COMPLETO (AJUSTE 3: GRADIENTE ROTATIVO PREMIUM)
+--  ESP — SISTEMA COMPLETO 
 -- ══════════════════════════════════════════════
 local ESPGui = Instance.new("ScreenGui")
 ESPGui.Name = "OmegaESP";
@@ -1652,7 +1842,6 @@ local function CreateESP(player)
     bStroke.Color = OmegaState.Visuals.ESP_Color;
     bStroke.Thickness = 1.5; bStroke.Parent = box
     
-    -- Efeito visual: Gradiente dinâmico nas bordas do ESP
     local bGrad = Instance.new("UIGradient")
     bGrad.Color = ColorSequence.new(OmegaState.Visuals.ESP_Color, Color3.fromRGB(255, 255, 255))
     bGrad.Rotation = 0;
@@ -1711,7 +1900,6 @@ RunService.RenderStepped:Connect(function()
                         objs.Box.Size = UDim2.new(0,width,0,height)
                         objs.Box.Position = UDim2.new(0, hPos.X-width/2, 0, hPos.Y)
                         
-                        -- Atualiza cor base e rotaciona o gradiente esteticamente a cada ciclo
                         objs.BoxGradient.Color = ColorSequence.new(OmegaState.Visuals.ESP_Color, Color3.fromRGB(255,255,255))
                         objs.BoxGradient.Rotation = (os.clock() * 120) % 360
                         
@@ -1823,6 +2011,6 @@ RunService.Heartbeat:Connect(function()
 end)
 
 -- ══════════════════════════════════════════════
---  INICIAR
+--  INICIAR SISTEMA (PONTO DE ENTRADA DO EXECUTOR)
 -- ══════════════════════════════════════════════
 PlayIntroAnimation()

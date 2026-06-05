@@ -1,0 +1,1791 @@
+--[[
+    ███╗   ██╗███████╗██╗  ██╗██╗   ██╗███████╗
+    ████╗  ██║██╔════╝╚██╗██╔╝██║   ██║██╔════╝
+    ██╔██╗ ██║█████╗   ╚███╔╝ ██║   ██║███████╗
+    ██║╚██╗██║██╔══╝   ██╔██╗ ██║   ██║╚════██║
+    ██║ ╚████║███████╗██╔╝ ██╗╚██████╔╝███████║
+    ╚═╝  ╚═══╝╚══════╝╚═╝  ╚═╝ ╚═════╝ ╚══════╝
+
+    OMEGA SUPREMACY  •  v10  (NEXUS INTERFACE)
+    Interface NEXUS + Todas as funções OMEGA
+    Delta Mobile Compatible ✓
+    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    MODIFICADO: Script EB do Delta
+]]
+
+-- ══════════════════════════════════════════════
+--  SERVIÇOS
+-- ══════════════════════════════════════════════
+local Players           = game:GetService("Players")
+local RunService        = game:GetService("RunService")
+local TweenService      = game:GetService("TweenService")
+local UIS               = game:GetService("UserInputService")
+local CoreGui           = game:GetService("CoreGui")
+local Lighting          = game:GetService("Lighting")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+
+local Player    = Players.LocalPlayer
+local PlayerGui = Player:WaitForChild("PlayerGui")
+
+-- ══════════════════════════════════════════════
+--  CONFIGURAÇÃO VISUAL
+-- ══════════════════════════════════════════════
+local CONFIG = {
+    ScriptName  = "Script EB do Delta",
+    SubTitle    = "SUPREMACY v10",
+    Version     = "v10.0",
+    Accent      = Color3.fromRGB(0,   210, 255),
+    AccentDark  = Color3.fromRGB(0,   100, 180),
+    AccentGlow  = Color3.fromRGB(0,   255, 255),
+    BG          = Color3.fromRGB(6,   8,   18),
+    BGSecond    = Color3.fromRGB(10,  13,  28),
+    BGThird     = Color3.fromRGB(14,  18,  38),
+    TextPrimary = Color3.fromRGB(240, 248, 255),
+    TextSub     = Color3.fromRGB(100, 130, 180),
+    Success     = Color3.fromRGB(0,   230, 130),
+    Warning     = Color3.fromRGB(255, 180, 0),
+    Danger      = Color3.fromRGB(255, 60,  90),
+}
+
+-- ══════════════════════════════════════════════
+--  SETUP DO SCREENGUI (DELTA SAFE)
+-- ══════════════════════════════════════════════
+local targetGui
+local _ok = pcall(function() targetGui = gethui() end)
+if not _ok or not targetGui then
+    local _ok2 = pcall(function() targetGui = CoreGui end)
+    if not _ok2 then targetGui = PlayerGui end
+end
+
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name           = "OmegaNexusUI"
+ScreenGui.ResetOnSpawn   = false
+ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+ScreenGui.IgnoreGuiInset = true
+ScreenGui.DisplayOrder   = 999
+ScreenGui.Parent         = targetGui
+
+-- ══════════════════════════════════════════════
+--  OMEGA STATE (TODAS AS FEATURES)
+-- ══════════════════════════════════════════════
+local OmegaState = {
+    Aimbot = {
+        Enabled = false, AimLock = false, SilentAim = false,
+        WallCheck = false, TeamCheck = false, Prediction = false,
+        PredictionFactor = 0.165, Smoothness = 0.1,
+        TargetPart = "Head", HitChance = 100,
+        TargetStick = false, CurrentTarget = nil,
+    },
+    FOV = {
+        Visible = false, Radius = 100,
+        Transparency = 0.8, Thickness = 2,
+        Color = Color3.fromRGB(0, 170, 255)
+    },
+    Visuals = {
+        ESP_Enabled = false, ESP_Box = false,
+        ESP_Line = false, ESP_Health = false,
+        ESP_Color = Color3.fromRGB(0, 255, 150)
+    },
+    VectorSystem = {
+        Enabled = false, Pool = {}, DataLoaded = false,
+        torreData = {}, deltaData = {}, parkourData = {}
+    },
+    AutoJJS = { Enabled = false, Delay = 0.4 },
+    Player  = { RegenEnabled = false, TargetLevel = 1 },
+}
+
+-- ══════════════════════════════════════════════
+--  FPS BOOSTER STATE
+-- ══════════════════════════════════════════════
+local OriginalStates = { Lighting = {}, Parts = {}, HiddenObjects = nil }
+setmetatable(OriginalStates.Parts, { __mode = "k" })
+
+if not ReplicatedStorage:FindFirstChild("UltraFPS_CacheFolder") then
+    local f = Instance.new("Folder")
+    f.Name   = "UltraFPS_CacheFolder"
+    f.Parent = ReplicatedStorage
+    OriginalStates.HiddenObjects = f
+else
+    OriginalStates.HiddenObjects = ReplicatedStorage:FindFirstChild("UltraFPS_CacheFolder")
+end
+
+local isOptimized    = false
+local extremeMode    = false
+local descendantConn = nil
+local optimizedCount = 0
+
+local HIDE_ENTIRE_MODEL = {
+    Pinheiro=true, Palmeira=true, Planta=true, Arvore=true,
+    Industrial_Light=true, VasoEntrada=true, ThreeDTextObject=true,
+}
+local PROTECTED_NAMES = {
+    HumanoidRootPart=true, Torso=true, Head=true,
+    ["Left Arm"]=true, ["Right Arm"]=true, ["Left Leg"]=true, ["Right Leg"]=true,
+    UpperTorso=true, LowerTorso=true,
+    LeftUpperArm=true, LeftLowerArm=true, LeftHand=true,
+    RightUpperArm=true, RightLowerArm=true, RightHand=true,
+    LeftUpperLeg=true, LeftLowerLeg=true, LeftFoot=true,
+    RightUpperLeg=true, RightLowerLeg=true, RightFoot=true,
+}
+
+-- ══════════════════════════════════════════════
+--  UTILITÁRIOS NEXUS
+-- ══════════════════════════════════════════════
+local function Tween(obj, info, props)
+    return TweenService:Create(obj, info, props)
+end
+local function Quick(t, style, dir)
+    return TweenInfo.new(t, style or Enum.EasingStyle.Quart, dir or Enum.EasingDirection.Out)
+end
+local function Corner(p, r)
+    local c = Instance.new("UICorner")
+    c.CornerRadius = UDim.new(0, r or 8)
+    c.Parent = p
+    return c
+end
+local function Stroke(p, thick, col, trans)
+    local s = Instance.new("UIStroke")
+    s.Thickness = thick or 1;
+    s.Color = col or CONFIG.Accent; s.Transparency = trans or 0.5
+    s.Parent = p;
+    return s
+end
+local function Shadow(parent, size)
+    local sh = Instance.new("ImageLabel")
+    sh.Name = "Shadow"
+    sh.Size = UDim2.new(1, size or 30, 1, size or 30)
+    sh.Position = UDim2.new(0, -(size or 30)/2, 0, -(size or 30)/2)
+    sh.BackgroundTransparency = 1
+    sh.Image = "rbxassetid://6014261993"
+    sh.ImageColor3 = Color3.fromRGB(0, 0, 0)
+    sh.ImageTransparency = 0.4
+    sh.ScaleType = Enum.ScaleType.Slice
+    sh.SliceCenter = Rect.new(49, 49, 450, 450)
+    sh.ZIndex = parent.ZIndex - 1
+    sh.Parent = parent;
+    return sh
+end
+local function Gradient(parent, c1, c2, rot)
+    local g = Instance.new("UIGradient")
+    g.Color = ColorSequence.new(c1, c2);
+    g.Rotation = rot or 90
+    g.Parent = parent;
+    return g
+end
+local function mathRound(n) return math.floor(n + 0.5) end
+local function isInput(i)
+    return i.UserInputType == Enum.UserInputType.MouseButton1
+        or i.UserInputType == Enum.UserInputType.Touch
+end
+local function isDrag(i)
+    return i.UserInputType == Enum.UserInputType.MouseMovement
+        or i.UserInputType == Enum.UserInputType.Touch
+end
+
+-- ══════════════════════════════════════════════
+--  SISTEMA DE NOTIFICAÇÕES
+-- ══════════════════════════════════════════════
+local NotifContainer
+local notifCount = 0
+
+local function Notify(title, text, duration)
+    duration = duration or 4
+    if not NotifContainer then
+        NotifContainer = Instance.new("Frame")
+        NotifContainer.Name = "NotifContainer"
+        NotifContainer.Size = UDim2.new(0, 230, 1, 0)
+        NotifContainer.Position = UDim2.new(1, -238, 0, 0)
+        NotifContainer.BackgroundTransparency = 1
+        NotifContainer.ZIndex = 500
+        NotifContainer.Parent = ScreenGui
+        local lay = Instance.new("UIListLayout")
+        lay.SortOrder = Enum.SortOrder.LayoutOrder
+        lay.VerticalAlignment = Enum.VerticalAlignment.Bottom
+        lay.Padding = UDim.new(0, 5)
+        lay.Parent = NotifContainer
+        local pad = Instance.new("UIPadding")
+        pad.PaddingBottom = UDim.new(0, 10);
+        pad.PaddingRight = UDim.new(0, 4)
+        pad.Parent = NotifContainer
+    end
+
+    notifCount = notifCount + 1
+    local n = Instance.new("Frame")
+    n.LayoutOrder = notifCount
+    n.Size = UDim2.new(1, 0, 0, 0)
+    n.BackgroundColor3 = CONFIG.BGSecond
+    n.BackgroundTransparency = 0.05
+    n.ClipsDescendants = true
+    n.ZIndex = 501
+    n.Parent = NotifContainer
+    Corner(n, 9);
+    Stroke(n, 1, CONFIG.Accent, 0.4)
+
+    local acc = Instance.new("Frame")
+    acc.Size = UDim2.new(0, 3, 1, 0)
+    acc.BackgroundColor3 = CONFIG.Accent
+    acc.ZIndex = 502;
+    acc.Parent = n; Corner(acc, 2)
+
+    local tl = Instance.new("TextLabel")
+    tl.Size = UDim2.new(1,-14,0,16);
+    tl.Position = UDim2.new(0,9,0,5)
+    tl.BackgroundTransparency = 1; tl.Text = title
+    tl.TextColor3 = CONFIG.Accent;
+    tl.Font = Enum.Font.GothamBold
+    tl.TextSize = 10; tl.TextXAlignment = Enum.TextXAlignment.Left
+    tl.ZIndex = 503;
+    tl.Parent = n
+
+    local bl = Instance.new("TextLabel")
+    bl.Size = UDim2.new(1,-14,0,32);
+    bl.Position = UDim2.new(0,9,0,20)
+    bl.BackgroundTransparency = 1; bl.Text = text
+    bl.TextColor3 = CONFIG.TextPrimary;
+    bl.Font = Enum.Font.Gotham
+    bl.TextSize = 10; bl.TextXAlignment = Enum.TextXAlignment.Left
+    bl.TextWrapped = true;
+    bl.ZIndex = 503; bl.Parent = n
+
+    Tween(n, Quick(0.3, Enum.EasingStyle.Back), {Size = UDim2.new(1,0,0,58)}):Play()
+    task.delay(duration, function()
+        Tween(n, Quick(0.3), {Size = UDim2.new(1,0,0,0)}):Play()
+        task.wait(0.35); n:Destroy()
+    end)
+end
+
+-- ══════════════════════════════════════════════
+--  GLOBALS DA JANELA
+-- ══════════════════════════════════════════════
+local Win
+local StatusText
+
+-- ══════════════════════════════════════════════
+--  BOTÃO MOBILE TOGGLE
+-- ══════════════════════════════════════════════
+local function CreateMobileToggle()
+    local btn = Instance.new("TextButton")
+    btn.Name = "OmegaToggle"
+    btn.Size = UDim2.new(0, 44, 0, 44)
+    btn.Position = UDim2.new(0, 10, 0.5, -22)
+    btn.BackgroundColor3 = CONFIG.BGSecond
+    btn.Text = "Ω"; btn.TextColor3 = CONFIG.Accent
+    btn.Font = Enum.Font.GothamBlack;
+    btn.TextSize = 22
+    btn.ZIndex = 999; btn.Parent = ScreenGui
+    Corner(btn, 22);
+    Stroke(btn, 2, CONFIG.Accent, 0.2); Shadow(btn, 15)
+
+    local dragging, dragStart, startPos = false, nil, nil
+    btn.InputBegan:Connect(function(i)
+        if isInput(i) then
+            dragging = true; dragStart = i.Position; startPos = btn.Position
+            i.Changed:Connect(function()
+                if i.UserInputState == Enum.UserInputState.End then dragging = false end
+            end)
+        end
+    end)
+    UIS.InputChanged:Connect(function(i)
+        if dragging and isDrag(i) then
+            local d = i.Position - dragStart
+            btn.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset+d.X,
+                                     startPos.Y.Scale, startPos.Y.Offset+d.Y)
+        end
+    end)
+    btn.MouseButton1Click:Connect(function()
+        if Win then Win.Visible = not Win.Visible end
+    end)
+end
+
+-- ══════════════════════════════════════════════
+--  JANELA PRINCIPAL
+-- ══════════════════════════════════════════════
+function BuildMainWindow()
+    if Win then return end
+    CreateMobileToggle()
+
+    Win = Instance.new("Frame")
+    Win.Name = "OmegaWindow"
+    Win.AnchorPoint = Vector2.new(0.5, 0.5)
+    Win.Size = UDim2.new(0, 0, 0, 0)
+    Win.Position = UDim2.new(0.5, 0, 0.5, 0)
+    Win.BackgroundColor3 = CONFIG.BG
+    Win.BackgroundTransparency = 0.05
+    Win.ZIndex = 20; Win.ClipsDescendants = true
+    Win.Parent = ScreenGui
+    Corner(Win, 14);
+    Stroke(Win, 1, CONFIG.Accent, 0.4); Shadow(Win, 40)
+
+    Tween(Win, TweenInfo.new(0.55, Enum.EasingStyle.Back, Enum.EasingDirection.Out),
+        {Size = UDim2.new(0, 560, 0, 400)}):Play()
+
+    -- SCAN LINE ANIMADO
+    local ScanClip = Instance.new("Frame")
+    ScanClip.Size = UDim2.new(1,0,1,0);
+    ScanClip.BackgroundTransparency = 1
+    ScanClip.ClipsDescendants = true; ScanClip.ZIndex = 19;
+    ScanClip.Parent = Win
+    Corner(ScanClip, 14)
+    local Scan = Instance.new("Frame")
+    Scan.Size = UDim2.new(1,0,0,2);
+    Scan.Position = UDim2.new(0,0,-0.05,0)
+    Scan.BackgroundColor3 = CONFIG.AccentGlow; Scan.BackgroundTransparency = 0.75
+    Scan.ZIndex = 20;
+    Scan.Parent = ScanClip
+    Gradient(Scan, Color3.new(0,0,0), CONFIG.AccentGlow, 0)
+    task.spawn(function()
+        while Win and Win.Parent do
+            Tween(Scan, TweenInfo.new(3.5, Enum.EasingStyle.Linear),
+                {Position = UDim2.new(0,0,1.05,0)}):Play()
+            task.wait(3.5)
+            if Scan then Scan.Position = UDim2.new(0,0,-0.05,0) end
+        end
+    end)
+
+    -- TOPBAR
+    local TopBar = Instance.new("Frame")
+    TopBar.Size = UDim2.new(1,0,0,40);
+    TopBar.BackgroundColor3 = CONFIG.BGSecond
+    TopBar.ZIndex = 25; TopBar.Parent = Win;
+    Corner(TopBar, 14)
+    local TopFix = Instance.new("Frame")
+    TopFix.Size = UDim2.new(1,0,0.5,0);
+    TopFix.Position = UDim2.new(0,0,0.5,0)
+    TopFix.BackgroundColor3 = CONFIG.BGSecond; TopFix.BorderSizePixel = 0
+    TopFix.ZIndex = 25;
+    TopFix.Parent = TopBar
+    local TopSep = Instance.new("Frame")
+    TopSep.Size = UDim2.new(1,0,0,1);
+    TopSep.Position = UDim2.new(0,0,1,-1)
+    TopSep.BackgroundColor3 = CONFIG.Accent; TopSep.BackgroundTransparency = 0.7
+    TopSep.ZIndex = 26;
+    TopSep.Parent = TopBar
+    Gradient(TopSep, Color3.new(0,0,0), CONFIG.AccentGlow, 0)
+    local TitleLbl = Instance.new("TextLabel")
+    TitleLbl.Size = UDim2.new(0.65,0,1,0);
+    TitleLbl.Position = UDim2.new(0,15,0,0)
+    TitleLbl.BackgroundTransparency = 1; TitleLbl.Text = CONFIG.ScriptName
+    TitleLbl.TextColor3 = CONFIG.TextPrimary;
+    TitleLbl.Font = Enum.Font.GothamBlack
+    TitleLbl.TextSize = 13; TitleLbl.TextXAlignment = Enum.TextXAlignment.Left
+    TitleLbl.ZIndex = 27;
+    TitleLbl.Parent = TopBar
+
+    local function WinBtn(xOff, col, txt, cb)
+        local b = Instance.new("TextButton")
+        b.Size = UDim2.new(0,24,0,24);
+        b.Position = UDim2.new(1,xOff,0.5,-12)
+        b.BackgroundColor3 = col; b.Text = txt;
+        b.TextColor3 = Color3.new(1,1,1)
+        b.Font = Enum.Font.GothamBold; b.TextSize = 14; b.ZIndex = 28;
+        b.Parent = TopBar
+        Corner(b, 6); b.MouseButton1Click:Connect(cb);
+        return b
+    end
+    local minimized = false
+    WinBtn(-32, CONFIG.Danger, "×", function() Win.Visible = false end)
+    WinBtn(-62, CONFIG.Warning, "−", function()
+        minimized = not minimized
+        Tween(Win, Quick(0.35, Enum.EasingStyle.Back),
+            {Size = minimized and UDim2.new(0,560,0,40) or UDim2.new(0,560,0,400)}):Play()
+    end)
+
+    -- AJUSTE 1: SISTEMA DE ARRASTAR EM QUALQUER PARTE VISÍVEL (TOUCH SAFE)
+    local drag, dragInp, dragStart_w, startPos_w = false, nil, nil, nil
+    Win.InputBegan:Connect(function(i)
+        if isInput(i) then
+            drag = true; dragStart_w = i.Position; startPos_w = Win.Position
+            i.Changed:Connect(function()
+                if i.UserInputState == Enum.UserInputState.End then drag = false end
+            end)
+        end
+    end)
+    Win.InputChanged:Connect(function(i) 
+        if isDrag(i) then dragInp = i end end)
+    UIS.InputChanged:Connect(function(i)
+        if i == dragInp and drag then
+            local d = i.Position - dragStart_w
+            Win.Position = UDim2.new(startPos_w.X.Scale, startPos_w.X.Offset+d.X,
+                                     startPos_w.Y.Scale, startPos_w.Y.Offset+d.Y)
+        end
+    end)
+
+    -- SIDEBAR
+    local Sidebar = Instance.new("Frame")
+    Sidebar.Size = UDim2.new(0,130,1,-40);
+    Sidebar.Position = UDim2.new(0,0,0,40)
+    Sidebar.BackgroundColor3 = CONFIG.BGSecond; Sidebar.ZIndex = 22;
+    Sidebar.Parent = Win
+    local SideSep = Instance.new("Frame")
+    SideSep.Size = UDim2.new(0,1,1,0);
+    SideSep.Position = UDim2.new(1,0,0,0)
+    SideSep.BackgroundColor3 = CONFIG.Accent; SideSep.BackgroundTransparency = 0.65
+    SideSep.ZIndex = 23;
+    SideSep.Parent = Sidebar
+
+    -- ÁREA DE CONTEÚDO
+    local ContentClip = Instance.new("Frame")
+    ContentClip.Size = UDim2.new(1,-138,1,-64);
+    ContentClip.Position = UDim2.new(0,138,0,48)
+    ContentClip.BackgroundTransparency = 1; ContentClip.ClipsDescendants = true
+    ContentClip.ZIndex = 22;
+    ContentClip.Parent = Win
+
+    -- STATUS BAR
+    local StatusBar = Instance.new("Frame")
+    StatusBar.Size = UDim2.new(1,0,0,20);
+    StatusBar.Position = UDim2.new(0,0,1,-20)
+    StatusBar.BackgroundColor3 = CONFIG.BGSecond; StatusBar.ZIndex = 25;
+    StatusBar.Parent = Win
+    Corner(StatusBar, 14)
+    local StatFix2 = Instance.new("Frame")
+    StatFix2.Size = UDim2.new(1,0,0.5,0);
+    StatFix2.BackgroundColor3 = CONFIG.BGSecond
+    StatFix2.BorderSizePixel = 0; StatFix2.ZIndex = 25;
+    StatFix2.Parent = StatusBar
+    local StatTxt = Instance.new("TextLabel")
+    StatTxt.Size = UDim2.new(0.9,0,1,0);
+    StatTxt.Position = UDim2.new(0,15,0,0)
+    StatTxt.BackgroundTransparency = 1; StatTxt.Text = "SISTEMA ONLINE · "..CONFIG.Version
+    StatTxt.TextColor3 = CONFIG.TextSub;
+    StatTxt.Font = Enum.Font.Gotham
+    StatTxt.TextSize = 10; StatTxt.TextXAlignment = Enum.TextXAlignment.Left
+    StatTxt.ZIndex = 27;
+    StatTxt.Parent = StatusBar
+    StatusText = StatTxt
+
+    -- ════════════════════════════════════════
+    --  COMPONENTES DE UI
+    -- ════════════════════════════════════════
+    local function MakePage(name)
+        local s = Instance.new("ScrollingFrame")
+        s.Name = name.."Page";
+        s.Size = UDim2.new(1,0,1,0)
+        s.BackgroundTransparency = 1;
+        s.ScrollBarThickness = 2
+        s.ScrollBarImageColor3 = CONFIG.Accent;
+        s.ZIndex = 23
+        s.Visible = false; s.CanvasSize = UDim2.new(0,0,0,0);
+        s.Parent = ContentClip
+        local lay = Instance.new("UIListLayout")
+        lay.SortOrder = Enum.SortOrder.LayoutOrder;
+        lay.Padding = UDim.new(0,6); lay.Parent = s
+        local pad = Instance.new("UIPadding")
+        pad.PaddingTop = UDim.new(0,4);
+        pad.PaddingLeft = UDim.new(0,4)
+        pad.PaddingRight = UDim.new(0,8); pad.PaddingBottom = UDim.new(0,4);
+        pad.Parent = s
+        lay:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
+            s.CanvasSize = UDim2.new(0,0,0, lay.AbsoluteContentSize.Y + 15)
+        end)
+        return s
+    end
+
+    local function Section(parent, txt, order)
+        local l = Instance.new("TextLabel")
+        l.LayoutOrder = order or 0;
+        l.Size = UDim2.new(1,0,0,18)
+        l.BackgroundTransparency = 1; l.Text = txt;
+        l.TextColor3 = CONFIG.Accent
+        l.Font = Enum.Font.GothamBold;
+        l.TextSize = 10
+        l.TextXAlignment = Enum.TextXAlignment.Left; l.ZIndex = 24;
+        l.Parent = parent
+        return l
+    end
+
+    local function Toggle(parent, label, state, onChange, order)
+        local row = Instance.new("Frame")
+        row.LayoutOrder = order or 1;
+        row.Size = UDim2.new(1,0,0,36)
+        row.BackgroundColor3 = CONFIG.BGThird; row.ZIndex = 24;
+        row.Parent = parent
+        Corner(row, 9);
+        Stroke(row, 1, CONFIG.Accent, 0.82)
+        local lbl = Instance.new("TextLabel")
+        lbl.Size = UDim2.new(1,-62,1,0);
+        lbl.Position = UDim2.new(0,10,0,0)
+        lbl.BackgroundTransparency = 1; lbl.Text = label;
+        lbl.TextColor3 = CONFIG.TextPrimary
+        lbl.Font = Enum.Font.Gotham;
+        lbl.TextSize = 11
+        lbl.TextXAlignment = Enum.TextXAlignment.Left;
+        lbl.TextWrapped = true
+        lbl.ZIndex = 25;
+        lbl.Parent = row
+        local bg = Instance.new("Frame")
+        bg.Size = UDim2.new(0,34,0,18);
+        bg.Position = UDim2.new(1,-44,0.5,-9)
+        bg.BackgroundColor3 = state and CONFIG.Accent or Color3.fromRGB(40,46,68)
+        bg.ZIndex = 25;
+        bg.Parent = row; Corner(bg, 9)
+        local dot = Instance.new("Frame")
+        dot.Size = UDim2.new(0,14,0,14)
+        dot.Position = state and UDim2.new(1,-16,0.5,-7) or UDim2.new(0,2,0.5,-7)
+        dot.BackgroundColor3 = Color3.new(1,1,1);
+        dot.ZIndex = 26; dot.Parent = bg; Corner(dot, 7)
+        local btn = Instance.new("TextButton")
+        btn.Size = UDim2.new(1,0,1,0);
+        btn.BackgroundTransparency = 1
+        btn.Text = ""; btn.ZIndex = 27;
+        btn.Parent = row
+        local on = state
+        btn.MouseButton1Click:Connect(function()
+            on = not on
+            Tween(bg, Quick(0.22), {BackgroundColor3 = on and CONFIG.Accent or Color3.fromRGB(40,46,68)}):Play()
+            Tween(dot, Quick(0.22), {Position = on and UDim2.new(1,-16,0.5,-7) or UDim2.new(0,2,0.5,-7)}):Play()
+            
+            -- AJUSTE 5: EFEITO VISUAL DE ATIVAÇÃO SIMULANDO INJEÇÃO
+            if on then
+                task.spawn(function()
+                    local backup = StatusText.Text
+                    local frames = {
+                        "[████░░░░░] Injetando...",
+                        "[██████░░░] Carregando módulos...",
+                        "[█████████] Código injetado com sucesso."
+                    }
+                    for _, msg in ipairs(frames) do
+                        StatusText.Text = msg
+                        task.wait(0.22)
+                    end
+                    task.wait(0.6)
+                    StatusText.Text = backup
+                end)
+            end
+
+            if onChange then onChange(on) end
+        end)
+        return row
+    end
+
+    local function Slider(parent, label, min, max, val, onChange, order)
+        local row = Instance.new("Frame")
+        row.LayoutOrder = order or 2;
+        row.Size = UDim2.new(1,0,0,48)
+        row.BackgroundColor3 = CONFIG.BGThird; row.ZIndex = 24;
+        row.Parent = parent
+        Corner(row, 9);
+        Stroke(row, 1, CONFIG.Accent, 0.82)
+        local lbl = Instance.new("TextLabel")
+        lbl.Size = UDim2.new(0.7,0,0,20);
+        lbl.Position = UDim2.new(0,10,0,4)
+        lbl.BackgroundTransparency = 1; lbl.Text = label;
+        lbl.TextColor3 = CONFIG.TextPrimary
+        lbl.Font = Enum.Font.Gotham;
+        lbl.TextSize = 11
+        lbl.TextXAlignment = Enum.TextXAlignment.Left; lbl.ZIndex = 25;
+        lbl.Parent = row
+        local valLbl = Instance.new("TextLabel")
+        valLbl.Size = UDim2.new(0.3,-10,0,20);
+        valLbl.Position = UDim2.new(0.7,0,0,4)
+        valLbl.BackgroundTransparency = 1;
+        valLbl.Text = tostring(val)
+        valLbl.TextColor3 = CONFIG.Accent;
+        valLbl.Font = Enum.Font.GothamBold
+        valLbl.TextSize = 11;
+        valLbl.TextXAlignment = Enum.TextXAlignment.Right
+        valLbl.ZIndex = 25;
+        valLbl.Parent = row
+        local track = Instance.new("Frame")
+        track.Size = UDim2.new(1,-20,0,4);
+        track.Position = UDim2.new(0,10,1,-14)
+        track.BackgroundColor3 = Color3.fromRGB(30,36,58);
+        track.ZIndex = 25
+        track.Parent = row;
+        Corner(track, 2)
+        local pct0 = math.clamp((val-min)/(max-min), 0, 1)
+        local fill = Instance.new("Frame")
+        fill.Size = UDim2.new(pct0,0,1,0);
+        fill.BackgroundColor3 = CONFIG.Accent
+        fill.ZIndex = 26; fill.Parent = track;
+        Corner(fill, 2)
+        Gradient(fill, CONFIG.AccentDark, CONFIG.AccentGlow, 0)
+        local handle = Instance.new("Frame")
+        handle.Size = UDim2.new(0,12,0,12);
+        handle.Position = UDim2.new(pct0,-6,0.5,-6)
+        handle.BackgroundColor3 = Color3.new(1,1,1);
+        handle.ZIndex = 27
+        handle.Parent = track;
+        Corner(handle, 6)
+        local sliding = false
+        track.InputBegan:Connect(function(i) if isInput(i) then sliding = true end end)
+        UIS.InputEnded:Connect(function(i) if isInput(i) then sliding = false end end)
+        UIS.InputChanged:Connect(function(i)
+            if sliding and isDrag(i) then
+                local p = math.clamp((i.Position.X - track.AbsolutePosition.X)/track.AbsoluteSize.X, 0, 1)
+                local v = mathRound(min + (max-min)*p)
+                fill.Size = UDim2.new(p,0,1,0); handle.Position = UDim2.new(p,-6,0.5,-6)
+                valLbl.Text = tostring(v)
+                if onChange then onChange(v) end
+            end
+        end)
+        return row
+    end
+
+    local function Button(parent, txt, col, cb, order)
+        local btn = Instance.new("TextButton")
+        btn.LayoutOrder = order or 3;
+        btn.Size = UDim2.new(1,0,0,36)
+        btn.BackgroundColor3 = col or CONFIG.Accent;
+        btn.Text = txt
+        btn.TextColor3 = Color3.new(1,1,1);
+        btn.Font = Enum.Font.GothamBold
+        btn.TextSize = 11; btn.ZIndex = 24; btn.Parent = parent;
+        Corner(btn, 9)
+        btn.MouseButton1Click:Connect(function()
+            Tween(btn, Quick(0.08), {Size = UDim2.new(1,-4,0,34)}):Play()
+            task.wait(0.08)
+            Tween(btn, Quick(0.12), {Size = UDim2.new(1,0,0,36)}):Play()
+            if cb then cb() end
+        end)
+        return btn
+    end
+
+    local function Input(parent, label, placeholder, onChange, order)
+        local row = Instance.new("Frame")
+        row.LayoutOrder = order or 4;
+        row.Size = UDim2.new(1,0,0,54)
+        row.BackgroundColor3 = CONFIG.BGThird; row.ZIndex = 24;
+        row.Parent = parent
+        Corner(row, 9);
+        Stroke(row, 1, CONFIG.Accent, 0.82)
+        local lbl = Instance.new("TextLabel")
+        lbl.Size = UDim2.new(1,-10,0,18);
+        lbl.Position = UDim2.new(0,10,0,4)
+        lbl.BackgroundTransparency = 1; lbl.Text = label;
+        lbl.TextColor3 = CONFIG.TextPrimary
+        lbl.Font = Enum.Font.Gotham;
+        lbl.TextSize = 11
+        lbl.TextXAlignment = Enum.TextXAlignment.Left; lbl.ZIndex = 25;
+        lbl.Parent = row
+        local inputBg = Instance.new("Frame")
+        inputBg.Size = UDim2.new(1,-20,0,24);
+        inputBg.Position = UDim2.new(0,10,0,24)
+        inputBg.BackgroundColor3 = Color3.fromRGB(18,22,44);
+        inputBg.ZIndex = 25
+        inputBg.Parent = row; Corner(inputBg, 6);
+        Stroke(inputBg, 1, CONFIG.Accent, 0.6)
+        local tb = Instance.new("TextBox")
+        tb.Size = UDim2.new(1,-10,1,0);
+        tb.Position = UDim2.new(0,5,0,0)
+        tb.BackgroundTransparency = 1;
+        tb.Text = ""
+        tb.PlaceholderText = placeholder or "...";
+        tb.PlaceholderColor3 = CONFIG.TextSub
+        tb.TextColor3 = CONFIG.TextPrimary;
+        tb.Font = Enum.Font.Gotham
+        tb.TextSize = 11;
+        tb.TextXAlignment = Enum.TextXAlignment.Left
+        tb.ClearTextOnFocus = false; tb.ZIndex = 26;
+        tb.Parent = inputBg
+        tb.FocusLost:Connect(function() if onChange then onChange(tb.Text) end end)
+        return row
+    end
+
+    local function Dropdown(parent, label, options, default, onChange, order)
+        local currentVal = default or options[1]
+        local isOpen = false
+        local wrapper = Instance.new("Frame")
+        wrapper.LayoutOrder = order or 5;
+        wrapper.Size = UDim2.new(1,0,0,36)
+        wrapper.BackgroundTransparency = 1;
+        wrapper.ClipsDescendants = false
+        wrapper.ZIndex = 24;
+        wrapper.Parent = parent
+        local row = Instance.new("Frame")
+        row.Size = UDim2.new(1,0,0,36);
+        row.BackgroundColor3 = CONFIG.BGThird
+        row.ZIndex = 24; row.Parent = wrapper; Corner(row, 9);
+        Stroke(row, 1, CONFIG.Accent, 0.82)
+        local lbl = Instance.new("TextLabel")
+        lbl.Size = UDim2.new(0.55,0,1,0);
+        lbl.Position = UDim2.new(0,10,0,0)
+        lbl.BackgroundTransparency = 1; lbl.Text = label;
+        lbl.TextColor3 = CONFIG.TextPrimary
+        lbl.Font = Enum.Font.Gotham;
+        lbl.TextSize = 11
+        lbl.TextXAlignment = Enum.TextXAlignment.Left; lbl.ZIndex = 25;
+        lbl.Parent = row
+        local valLbl = Instance.new("TextLabel")
+        valLbl.Size = UDim2.new(0.37,-4,1,0);
+        valLbl.Position = UDim2.new(0.55,0,0,0)
+        valLbl.BackgroundTransparency = 1;
+        valLbl.Text = currentVal
+        valLbl.TextColor3 = CONFIG.Accent;
+        valLbl.Font = Enum.Font.GothamBold
+        valLbl.TextSize = 10;
+        valLbl.TextXAlignment = Enum.TextXAlignment.Right
+        valLbl.ZIndex = 25;
+        valLbl.Parent = row
+        local arrow = Instance.new("TextLabel")
+        arrow.Size = UDim2.new(0,18,1,0);
+        arrow.Position = UDim2.new(1,-22,0,0)
+        arrow.BackgroundTransparency = 1; arrow.Text = "▾";
+        arrow.TextColor3 = CONFIG.Accent
+        arrow.Font = Enum.Font.GothamBold; arrow.TextSize = 14; arrow.ZIndex = 25;
+        arrow.Parent = row
+        local dd = Instance.new("Frame")
+        dd.Size = UDim2.new(1,0,0,0);
+        dd.Position = UDim2.new(0,0,1,2)
+        dd.BackgroundColor3 = CONFIG.BGSecond;
+        dd.ClipsDescendants = true
+        dd.ZIndex = 50; dd.Visible = false;
+        dd.Parent = wrapper
+        Corner(dd, 8);
+        Stroke(dd, 1, CONFIG.Accent, 0.5)
+        local ddLay = Instance.new("UIListLayout")
+        ddLay.SortOrder = Enum.SortOrder.LayoutOrder;
+        ddLay.Parent = dd
+        local OH = 28
+        for i, opt in ipairs(options) do
+            local ob = Instance.new("TextButton")
+            ob.LayoutOrder = i;
+            ob.Size = UDim2.new(1,0,0,OH)
+            ob.BackgroundTransparency = 1;
+            ob.Text = "  "..opt
+            ob.TextColor3 = opt == currentVal and CONFIG.Accent or CONFIG.TextPrimary
+            ob.Font = Enum.Font.Gotham;
+            ob.TextSize = 11
+            ob.TextXAlignment = Enum.TextXAlignment.Left; ob.ZIndex = 51;
+            ob.Parent = dd
+            ob.MouseButton1Click:Connect(function()
+                currentVal = opt; valLbl.Text = opt
+                for _, c in ipairs(dd:GetChildren()) do
+                    if c:IsA("TextButton") then
+                        c.TextColor3 = c.Text == "  "..opt and CONFIG.Accent or CONFIG.TextPrimary
+                    end
+                end
+                isOpen = false
+                Tween(dd, Quick(0.18), {Size = UDim2.new(1,0,0,0)}):Play()
+                task.wait(0.2); dd.Visible = false; wrapper.Size = UDim2.new(1,0,0,36)
+                if onChange then onChange({opt}) end
+            end)
+        end
+        local clickB = Instance.new("TextButton")
+        clickB.Size = UDim2.new(1,0,1,0);
+        clickB.BackgroundTransparency = 1
+        clickB.Text = ""; clickB.ZIndex = 26;
+        clickB.Parent = row
+        clickB.MouseButton1Click:Connect(function()
+            isOpen = not isOpen
+            if isOpen then
+                dd.Visible = true
+                local total = #options * OH
+                Tween(dd, Quick(0.2, Enum.EasingStyle.Back), {Size = UDim2.new(1,0,0,total)}):Play()
+                wrapper.Size = UDim2.new(1,0,0, 36+total+4)
+            else
+                Tween(dd, Quick(0.18), {Size = UDim2.new(1,0,0,0)}):Play()
+                task.wait(0.2); dd.Visible = false; wrapper.Size = UDim2.new(1,0,0,36)
+            end
+        end)
+        return wrapper
+    end
+
+    local function ColorPicker(parent, label, defaultColor, onChange, order)
+        local row = Instance.new("Frame")
+        row.LayoutOrder = order or 7;
+        row.Size = UDim2.new(1,0,0,46)
+        row.BackgroundColor3 = CONFIG.BGThird; row.ZIndex = 24;
+        row.Parent = parent
+        Corner(row, 9);
+        Stroke(row, 1, CONFIG.Accent, 0.82)
+        local lbl = Instance.new("TextLabel")
+        lbl.Size = UDim2.new(0.5,0,0,20);
+        lbl.Position = UDim2.new(0,10,0,4)
+        lbl.BackgroundTransparency = 1; lbl.Text = label;
+        lbl.TextColor3 = CONFIG.TextPrimary
+        lbl.Font = Enum.Font.Gotham;
+        lbl.TextSize = 11
+        lbl.TextXAlignment = Enum.TextXAlignment.Left; lbl.ZIndex = 25;
+        lbl.Parent = row
+        local preview = Instance.new("Frame")
+        preview.Size = UDim2.new(0,20,0,20);
+        preview.Position = UDim2.new(1,-28,0,4)
+        preview.BackgroundColor3 = defaultColor; preview.ZIndex = 25;
+        preview.Parent = row
+        Corner(preview, 5);
+        Stroke(preview, 1, Color3.new(1,1,1), 0.6)
+        local COLORS = {
+            Color3.fromRGB(0,210,255), Color3.fromRGB(0,255,150),
+            Color3.fromRGB(255,60,90), Color3.fromRGB(255,180,0),
+            Color3.fromRGB(180,0,255), Color3.fromRGB(255,255,255),
+            Color3.fromRGB(255,120,0), Color3.fromRGB(0,255,80),
+        }
+        local cc = Instance.new("Frame")
+        cc.Size = UDim2.new(1,-20,0,16);
+        cc.Position = UDim2.new(0,10,1,-22)
+        cc.BackgroundTransparency = 1; cc.ZIndex = 25;
+        cc.Parent = row
+        local ccLay = Instance.new("UIListLayout")
+        ccLay.FillDirection = Enum.FillDirection.Horizontal
+        ccLay.Padding = UDim.new(0,4);
+        ccLay.Parent = cc
+        for _, c in ipairs(COLORS) do
+            local sw = Instance.new("TextButton")
+            sw.Size = UDim2.new(0,16,0,16);
+            sw.BackgroundColor3 = c
+            sw.Text = ""; sw.ZIndex = 26;
+            sw.Parent = cc; Corner(sw, 4)
+            sw.MouseButton1Click:Connect(function()
+                preview.BackgroundColor3 = c
+                if onChange then onChange(c) end
+            end)
+        end
+        return row
+    end
+
+    local function InfoLabel(parent, txt, order)
+        local l = Instance.new("TextLabel")
+        l.LayoutOrder = order or 99;
+        l.Size = UDim2.new(1,0,0,26)
+        l.BackgroundColor3 = Color3.fromRGB(12,20,40);
+        l.BackgroundTransparency = 0.2
+        l.Text = txt; l.TextColor3 = CONFIG.TextSub;
+        l.Font = Enum.Font.Gotham
+        l.TextSize = 10; l.TextWrapped = true; l.ZIndex = 24;
+        l.Parent = parent
+        Corner(l, 6);
+        return l
+    end
+
+    -- ════════════════════════════════════════
+    --  PÁGINAS
+    -- ════════════════════════════════════════
+    local pages = {}
+
+    pages["Jogador"] = MakePage("Jogador")
+    Section(pages["Jogador"], "── SOBREVIVÊNCIA ──", 1)
+    Toggle(pages["Jogador"], "Regeneração de Vida PRO", false, function(v)
+        OmegaState.Player.RegenEnabled = v
+    end, 2)
+    InfoLabel(pages["Jogador"], "ℹ Recupera +2hp a cada 0.5s automaticamente.", 3)
+    Section(pages["Jogador"], "── MANIPULAÇÃO DE LEVEL ──", 4)
+    Input(pages["Jogador"], "Nível Desejado", "Ex: 500", function(v)
+        OmegaState.Player.TargetLevel = tonumber(v) or 1
+    end, 5)
+    Button(pages["Jogador"], "⚡  Sincronizar Level no Servidor", CONFIG.Accent, function()
+        local lvl = OmegaState.Player.TargetLevel
+        pcall(function()
+            if Player:FindFirstChild("leaderstats") and Player.leaderstats:FindFirstChild("Level") then
+                Player.leaderstats.Level.Value = lvl
+            end
+        end)
+        local count = 0
+        for _, v in pairs(game:GetDescendants()) do
+            if v:IsA("RemoteEvent") then
+                local n = v.Name:lower()
+                if n:find("level") or n:find("rank") or n:find("exp") or n:find("stats") then
+                    pcall(function()
+                        v:FireServer(lvl);
+                        v:FireServer("Level", lvl); v:FireServer(Player, lvl)
+                    end)
+                    count = count + 1
+                end
+            end
+        end
+        Notify("Sincronização", "Enviado para "..count.." canais! Level alvo: "..lvl, 5)
+        StatusText.Text = "LEVEL SYNC → "..lvl
+    end, 6)
+    InfoLabel(pages["Jogador"], "ℹ Tenta aplicar o level via RemoteEvents do jogo.", 7)
+
+    pages["AutoJJS"] = MakePage("AutoJJS")
+    Section(pages["AutoJJS"], "── AUTOMAÇÃO DE EXERCÍCIOS ──", 1)
+    Toggle(pages["AutoJJS"], "Ativar Auto JJS Core", false, function(v)
+        OmegaState.AutoJJS.Enabled = v
+        StatusText.Text = v and "AUTO JJS: ATIVO" or "AUTO JJS: INATIVO"
+    end, 2)
+    InfoLabel(pages["AutoJJS"], "ℹ Detecta e clica botões TAP para fazer exercício automaticamente.", 3)
+    Slider(pages["AutoJJS"], "Velocidade / Delay (x10)", 1, 20, 4, function(v)
+        OmegaState.AutoJJS.Delay = v / 10
+    end, 4)
+    InfoLabel(pages["AutoJJS"], "ℹ Valor 4 = 0.4s de delay entre cliques.", 5)
+
+    pages["Aimbot"] = MakePage("Aimbot")
+    Section(pages["Aimbot"], "── MECANISMO DE AQUISIÇÃO ──", 1)
+    Toggle(pages["Aimbot"], "AIMBOT MASTER", false, function(v)
+        OmegaState.Aimbot.Enabled = v
+    end, 2)
+    Toggle(pages["Aimbot"], "AIMLOCK (Lock CFrame)", false, function(v)
+        OmegaState.Aimbot.AimLock = v
+    end, 3)
+    Toggle(pages["Aimbot"], "SILENT AIM REAL (Namecall)", false, function(v)
+        OmegaState.Aimbot.SilentAim = v
+    end, 4)
+    Dropdown(pages["Aimbot"], "Alvo (Bone)", {"Head","HumanoidRootPart"}, "Head", function(opt)
+        OmegaState.Aimbot.TargetPart = opt[1] or "Head"
+    end, 5)
+    Section(pages["Aimbot"], "── FILTROS E AVANÇADO ──", 6)
+    Slider(pages["Aimbot"], "Suavidade (Smoothness)", 1, 20, 5, function(v)
+        OmegaState.Aimbot.Smoothness = v / 50
+    end, 7)
+    Slider(pages["Aimbot"], "Hit Chance (%)", 1, 100, 100, function(v)
+        OmegaState.Aimbot.HitChance = v
+    end, 8)
+    Toggle(pages["Aimbot"], "Wall Check (Verificar Paredes)", false, function(v)
+        OmegaState.Aimbot.WallCheck = v
+    end, 9)
+    Toggle(pages["Aimbot"], "Team Check (Ignorar Time)", false, function(v)
+        OmegaState.Aimbot.TeamCheck = v
+    end, 10)
+    Toggle(pages["Aimbot"], "Prediction Engine (Antecipação)", false, function(v)
+        OmegaState.Aimbot.Prediction = v
+    end, 11)
+    Toggle(pages["Aimbot"], "Target Stick (Manter Alvo)", false, function(v)
+        OmegaState.Aimbot.TargetStick = v
+    end, 12)
+
+    pages["FOV"] = MakePage("FOV")
+    Section(pages["FOV"], "── CONFIGURAÇÃO DO CÍRCULO ──", 1)
+    Toggle(pages["FOV"], "Exibir Círculo de FOV", false, function(v)
+        OmegaState.FOV.Visible = v
+    end, 2)
+    Slider(pages["FOV"], "Raio do FOV (px)", 20, 500, 100, function(v)
+        OmegaState.FOV.Radius = v
+    end, 3)
+    Slider(pages["FOV"], "Espessura (px)", 1, 5, 2, function(v)
+        OmegaState.FOV.Thickness = v
+    end, 4)
+    Slider(pages["FOV"], "Transparência (1-10)", 1, 10, 8, function(v)
+        OmegaState.FOV.Transparency = v / 10
+    end, 5)
+    ColorPicker(pages["FOV"], "Cor do FOV", Color3.fromRGB(0,170,255), function(c)
+        OmegaState.FOV.Color = c
+    end, 6)
+
+    pages["Visuals"] = MakePage("Visuals")
+    Section(pages["Visuals"], "── ESP SETTINGS ──", 1)
+    Toggle(pages["Visuals"], "Ativar ESP Master", false, function(v)
+        OmegaState.Visuals.ESP_Enabled = v
+    end, 2)
+    Toggle(pages["Visuals"], "ESP Box (Caixa)", false, function(v)
+        OmegaState.Visuals.ESP_Box = v
+    end, 3)
+    Toggle(pages["Visuals"], "ESP Line (Linha ao Alvo)", false, function(v)
+        OmegaState.Visuals.ESP_Line = v
+    end, 4)
+    Toggle(pages["Visuals"], "ESP Health (Barra de Vida)", false, function(v)
+        OmegaState.Visuals.ESP_Health = v
+    end, 5)
+    ColorPicker(pages["Visuals"], "Cor do ESP", Color3.fromRGB(0,255,150), function(c)
+        OmegaState.Visuals.ESP_Color = c
+    end, 6)
+
+    pages["Vector"] = MakePage("Vector")
+    Section(pages["Vector"], "── GERAÇÃO DINÂMICA ESTÁVEL ──", 1)
+    Toggle(pages["Vector"], "Ativar Plataformas de Parkour", false, function(v)
+        OmegaState.VectorSystem.Enabled = v
+        if v then RenderVectorPlatforms() else DestroyVectorPlatforms() end
+        StatusText.Text = v and "VECTOR: ATIVO" or "VECTOR: INATIVO"
+    end, 2)
+    InfoLabel(pages["Vector"], "ℹ Carrega plataformas via Pastebin. Verifique conexão se falhar.", 3)
+
+    pages["FPS"] = MakePage("FPS")
+    Section(pages["FPS"], "── CONTROLE AVANÇADO DE PERFORMANCE ──", 1)
+    Toggle(pages["FPS"], "Otimização Avançada V7", false, function(v)
+        AlternarBooster(v)
+    end, 2)
+    InfoLabel(pages["FPS"], "ℹ Remove sombras, texturas pesadas, luzes e emissores para max FPS.", 3)
+    Toggle(pages["FPS"], "Modo Plástico Total (No Materials)", false, function(v)
+        extremeMode = v
+        if isOptimized then
+            Notify("FPS Booster", "Desative e reative o Booster para aplicar o modo plástico.", 3)
+        end
+    end, 4)
+    InfoLabel(pages["FPS"], "ℹ Força material liso em todas as partes — max redução GPU Mobile.", 5)
+
+    pages["Sistema"] = MakePage("Sistema")
+    Section(pages["Sistema"], "── MONITORAMENTO DO ENGINE ──", 1)
+    local fpsLbl = InfoLabel(pages["Sistema"], "FPS: --  |  Uptime: 0s  |  Otimizados: 0", CONFIG.Accent, 2)
+    fpsLbl.TextColor3 = CONFIG.Accent
+    local playerLbl = InfoLabel(pages["Sistema"],
+        "Player: "..Player.Name.."  |  ID: "..tostring(Player.UserId), CONFIG.TextSub, 3)
+    Section(pages["Sistema"], "── AÇÕES ──", 4)
+    Button(pages["Sistema"], "↺  Forçar Rejoin (Reconectar)", CONFIG.Warning, function()
+        game:GetService("TeleportService"):Teleport(game.PlaceId, Player)
+    end, 5)
+    Button(pages["Sistema"], "✕  Fechar Interface Completa", CONFIG.Danger, function()
+        ScreenGui:Destroy()
+    end, 6)
+
+    task.spawn(function()
+        local startClock = os.clock()
+        local fps = 60
+        RunService.RenderStepped:Connect(function(dt)
+            fps = mathRound(1 / math.max(dt, 0.001))
+        end)
+        while fpsLbl and fpsLbl.Parent do
+            task.wait(1)
+            local uptime = mathRound(os.clock() - startClock)
+            pcall(function()
+                fpsLbl.Text = "FPS: "..fps.."  |  Uptime: "..uptime.."s  |  Opt: "..optimizedCount
+            end)
+        end
+    end)
+
+    -- ════════════════════════════════════════
+    --  AJUSTE 2: EMOJIS NAS ABAS DA SIDEBAR
+    -- ════════════════════════════════════════
+    local TABS = {
+        {name="Jogador", icon="👤 ◈", lbl="Jogador"},
+        {name="AutoJJS", icon="🏋️‍♂️ ⊕", lbl="Auto JJS"},
+        {name="Aimbot",  icon="🎯 ⊞", lbl="Aimbot"},
+        {name="FOV",     icon="👁️ ○", lbl="FOV"},
+        {name="Visuals", icon="✨ ◆", lbl="Visuals"},
+        {name="Vector",  icon="🧱 ⊟", lbl="Vector"},
+        {name="FPS",     icon="⚡ ⚡", lbl="FPS Boost"},
+        {name="Sistema", icon="⚙️ ⚙", lbl="Sistema"},
+    }
+
+    local tabBtns = {}
+    local TabScroll = Instance.new("ScrollingFrame")
+    TabScroll.Size = UDim2.new(1,-4,1,-8);
+    TabScroll.Position = UDim2.new(0,2,0,4)
+    TabScroll.BackgroundTransparency = 1; TabScroll.ScrollBarThickness = 2
+    TabScroll.ScrollBarImageColor3 = CONFIG.Accent
+    TabScroll.CanvasSize = UDim2.new(0,0,0, #TABS*38+10)
+    TabScroll.ZIndex = 24;
+    TabScroll.Parent = Sidebar
+    local TabLayout = Instance.new("UIListLayout")
+    TabLayout.SortOrder = Enum.SortOrder.LayoutOrder
+    TabLayout.Padding = UDim.new(0,4);
+    TabLayout.Parent = TabScroll
+
+    local function SelectTab(name)
+        for _, p in pairs(pages) do p.Visible = false end
+        if pages[name] then pages[name].Visible = true end
+        for _, d in ipairs(tabBtns) do
+            local active = (d.name == name)
+            d.frame.BackgroundColor3 = active and CONFIG.Accent or Color3.new(0,0,0)
+            d.frame.BackgroundTransparency = active and 0 or 1
+            d.lbl.TextColor3 = active and Color3.new(1,1,1) or CONFIG.TextSub
+            d.icon.TextColor3 = active and Color3.new(1,1,1) or CONFIG.TextSub
+        end
+    end
+
+    for i, t in ipairs(TABS) do
+        local f = Instance.new("Frame")
+        f.LayoutOrder = i;
+        f.Size = UDim2.new(1,0,0,34)
+        f.BackgroundColor3 = Color3.new(0,0,0);
+        f.BackgroundTransparency = 1
+        f.ZIndex = 25; f.Parent = TabScroll;
+        Corner(f, 9)
+        local iconL = Instance.new("TextLabel")
+        iconL.Size = UDim2.new(0,24,1,0);
+        iconL.Position = UDim2.new(0,6,0,0)
+        iconL.BackgroundTransparency = 1;
+        iconL.Text = t.icon
+        iconL.TextColor3 = CONFIG.TextSub;
+        iconL.Font = Enum.Font.GothamBold
+        iconL.TextSize = 12; iconL.ZIndex = 26;
+        iconL.Parent = f
+        local lblL = Instance.new("TextLabel")
+        lblL.Size = UDim2.new(1,-34,1,0);
+        lblL.Position = UDim2.new(0,32,0,0)
+        lblL.BackgroundTransparency = 1; lblL.Text = t.lbl;
+        lblL.TextColor3 = CONFIG.TextSub
+        lblL.Font = Enum.Font.Gotham;
+        lblL.TextSize = 11
+        lblL.TextXAlignment = Enum.TextXAlignment.Left; lblL.ZIndex = 26;
+        lblL.Parent = f
+        local cb = Instance.new("TextButton")
+        cb.Size = UDim2.new(1,0,1,0);
+        cb.BackgroundTransparency = 1
+        cb.Text = ""; cb.ZIndex = 27;
+        cb.Parent = f
+        cb.MouseButton1Click:Connect(function() SelectTab(t.name) end)
+        table.insert(tabBtns, {name=t.name, frame=f, lbl=lblL, icon=iconL})
+    end
+
+    SelectTab("Jogador")
+
+    task.delay(0.8, function()
+        Notify("Script EB do Delta", "Interface NEXUS carregada com sucesso! ✓", 5)
+    end)
+end
+
+-- ══════════════════════════════════════════════
+--  ANIMAÇÃO DE INTRO (REESTRUTURADA: ESTILO RAYFIELD)
+-- ══════════════════════════════════════════════
+local function PlayIntroAnimation()
+    -- ETAPA 1 & 2: GUI Independente e Overlay Preto/Escuro
+    local IntroGui = Instance.new("ScreenGui")
+    IntroGui.Name = "RayfieldIntroGui"
+    IntroGui.ResetOnSpawn = false
+    IntroGui.IgnoreGuiInset = true
+    IntroGui.DisplayOrder = 9999
+    
+    local targetGui
+    local _ok = pcall(function() targetGui = gethui() end)
+    if not _ok or not targetGui then
+        local _ok2 = pcall(function() targetGui = CoreGui end)
+        if not _ok2 then targetGui = PlayerGui end
+    end
+    IntroGui.Parent = targetGui
+
+    local Overlay = Instance.new("Frame")
+    Overlay.Size = UDim2.new(1, 0, 1, 0)
+    Overlay.BackgroundColor3 = Color3.fromRGB(15, 15, 15) -- Fundo escuro conforme instrução
+    Overlay.BackgroundTransparency = 1
+    Overlay.ZIndex = 1000
+    Overlay.Parent = IntroGui
+
+    -- ETAPA 3: Nome do Script no centro
+    local Title = Instance.new("TextLabel")
+    Title.Text = CONFIG.ScriptName:upper()
+    Title.Font = Enum.Font.GothamBlack
+    Title.TextColor3 = Color3.fromRGB(255, 255, 255)
+    Title.TextTransparency = 1
+    Title.BackgroundTransparency = 1
+    Title.Size = UDim2.new(0, 380, 0, 45) -- Começa ligeiramente menor para efeito de crescimento
+    Title.Position = UDim2.new(0.5, -190, 0.45, -22)
+    Title.TextScaled = true
+    Title.ZIndex = 1001
+    Title.Parent = Overlay
+
+    -- ETAPA 4: Texto de Inicialização (Abaixo do título)
+    local Status = Instance.new("TextLabel")
+    Status.Text = "Inicializando..."
+    Status.Font = Enum.Font.Gotham
+    Status.TextColor3 = Color3.fromRGB(200, 200, 200)
+    Status.TextTransparency = 1
+    Status.BackgroundTransparency = 1
+    Status.Size = UDim2.new(0, 300, 0, 20)
+    Status.Position = UDim2.new(0.5, -150, 0.55, 10)
+    Status.TextSize = 14
+    Status.ZIndex = 1001
+    Status.Parent = Overlay
+
+    -- ETAPA 5: Barra de Progresso
+    local BarBG = Instance.new("Frame")
+    BarBG.Size = UDim2.new(0, 300, 0, 4)
+    BarBG.Position = UDim2.new(0.5, -150, 0.55, 40)
+    BarBG.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+    BarBG.BackgroundTransparency = 1
+    BarBG.BorderSizePixel = 0
+    BarBG.ZIndex = 1001
+    BarBG.Parent = Overlay
+
+    local BarFill = Instance.new("Frame")
+    BarFill.Size = UDim2.new(0, 0, 1, 0)
+    BarFill.BackgroundColor3 = CONFIG.Accent
+    BarFill.BackgroundTransparency = 1
+    BarFill.BorderSizePixel = 0
+    BarFill.ZIndex = 1002
+    BarFill.Parent = BarBG
+
+    -- Lógica de Animação e Fade In/Out
+    task.spawn(function()
+        -- Fade In do fundo
+        Tween(Overlay, Quick(0.5), {BackgroundTransparency = 0}):Play()
+        task.wait(0.6)
+
+        -- Fade In e Crescimento do Título
+        Tween(Title, Quick(1, Enum.EasingStyle.Cubic, Enum.EasingDirection.Out), {
+            TextTransparency = 0,
+            Size = UDim2.new(0, 400, 0, 50),
+            Position = UDim2.new(0.5, -200, 0.45, -25)
+        }):Play()
+        task.wait(0.8)
+
+        -- Fade In dos elementos de progresso
+        Tween(Status, Quick(0.5), {TextTransparency = 0}):Play()
+        Tween(BarBG, Quick(0.5), {BackgroundTransparency = 0}):Play()
+        Tween(BarFill, Quick(0.5), {BackgroundTransparency = 0}):Play()
+        task.wait(0.5)
+
+        -- Passos da Inicialização
+        local steps = {
+            {msg = "Carregando Interface...", pct = 0.2},
+            {msg = "Verificando Recursos...", pct = 0.4},
+            {msg = "Preparando ESP...",       pct = 0.6},
+            {msg = "Preparando Aimbot...",    pct = 0.8},
+            {msg = "Configurando FOV...",     pct = 0.9},
+            {msg = "Otimizando Sistema...",   pct = 1.0}
+        }
+
+        for _, step in ipairs(steps) do
+            Status.Text = step.msg
+            -- Crescimento suave da barra para a porcentagem alvo
+            Tween(BarFill, Quick(0.6, Enum.EasingStyle.Sine), {Size = UDim2.new(step.pct, 0, 1, 0)}):Play()
+            task.wait(0.7)
+        end
+
+        -- ETAPA 6: Finalização
+        Status.Text = "Carregamento concluído."
+        task.wait(1.2)
+
+        -- ETAPA 7: Fade Out
+        Tween(Status, Quick(0.5), {TextTransparency = 1}):Play()
+        Tween(BarFill, Quick(0.5), {BackgroundTransparency = 1}):Play()
+        Tween(BarBG, Quick(0.5), {BackgroundTransparency = 1}):Play()
+        task.wait(0.3)
+        Tween(Title, Quick(0.5), {TextTransparency = 1}):Play()
+        task.wait(0.3)
+        Tween(Overlay, Quick(0.8), {BackgroundTransparency = 1}):Play()
+        task.wait(0.8)
+
+        -- Limpeza da Camada de Intro
+        IntroGui:Destroy()
+
+        -- ETAPA 8: Abrir Interface Principal SOMENTE AGORA
+        BuildMainWindow()
+    end)
+end
+
+-- ══════════════════════════════════════════════
+--  FPS BOOSTER — FUNÇÕES DE LÓGICA
+-- ══════════════════════════════════════════════
+local function SetQuality(nivel)
+    if nivel == "low" then
+        pcall(function() settings().Rendering.QualityLevel = Enum.QualityLevel.Level01 end)
+        pcall(function()
+            UserSettings():GetService("UserGameSettings").SavedQualityLevel
+                = Enum.SavedQualitySetting.QualityLevel01
+        end)
+    else
+        pcall(function() settings().Rendering.QualityLevel = Enum.QualityLevel.Level21 end)
+        task.wait(0.05)
+        pcall(function() settings().Rendering.QualityLevel = Enum.QualityLevel.Automatic end)
+        pcall(function()
+            UserSettings():GetService("UserGameSettings").SavedQualityLevel
+                = Enum.SavedQualitySetting.Automatic
+        end)
+    end
+end
+
+local function OtimizarInstancia(obj)
+    if not isOptimized then return end
+    if not obj:IsDescendantOf(workspace) then return end
+    if Player.Character and obj:IsDescendantOf(Player.Character) then return end
+    local ok, className = pcall(function() return obj.ClassName end)
+    if not ok then return end
+    if OriginalStates.Parts[obj] then return end
+    local name = obj.Name
+
+    if HIDE_ENTIRE_MODEL[name] or name == "Null" then
+        OriginalStates.Parts[obj] = {_t="model", Parent=obj.Parent}
+        pcall(function() obj.Parent = OriginalStates.HiddenObjects end)
+        optimizedCount += 1;
+        return
+    end
+    if className == "UnionOperation" then
+        OriginalStates.Parts[obj] = {_t="union", CastShadow=obj.CastShadow,
+            RenderFidelity=obj.RenderFidelity, Material=obj.Material}
+        pcall(function()
+            obj.CastShadow=false; obj.RenderFidelity=Enum.RenderFidelity.Performance
+            if extremeMode then obj.Material=Enum.Material.Plastic end
+        end)
+        optimizedCount += 1;
+        return
+    end
+    if className == "Texture" or className == "Decal" then
+        OriginalStates.Parts[obj] = {_t="decal", Transparency=obj.Transparency}
+        pcall(function() obj.Transparency = 1 end)
+        optimizedCount += 1;
+        return
+    end
+    if className == "SurfaceAppearance" then
+        OriginalStates.Parts[obj] = {_t="pbr", Parent=obj.Parent}
+        pcall(function() obj.Parent = OriginalStates.HiddenObjects end)
+        optimizedCount += 1;
+        return
+    end
+    if className == "ParticleEmitter" or className == "Trail" or className == "Smoke"
+        or className == "Fire" or className == "Sparkles" or className == "Beam" then
+        OriginalStates.Parts[obj] = {_t="emitter", Enabled=obj.Enabled}
+        pcall(function() obj.Enabled = false end)
+        optimizedCount += 1;
+        return
+    end
+    if className == "PointLight" or className == "SpotLight" or className == "SurfaceLight" then
+        OriginalStates.Parts[obj] = {_t="light", Enabled=obj.Enabled, Brightness=obj.Brightness}
+        pcall(function() obj.Enabled=false; obj.Brightness=0 end)
+        optimizedCount += 1;
+        return
+    end
+    if className == "ProximityPrompt" then
+        OriginalStates.Parts[obj] = {_t="prompt", MaxActivationDistance=obj.MaxActivationDistance}
+        pcall(function() obj.MaxActivationDistance = 0 end)
+        optimizedCount += 1;
+        return
+    end
+    if obj:IsA("BasePart") then
+        if PROTECTED_NAMES[name] then return end
+        local entry = {_t="part", Material=obj.Material, CastShadow=obj.CastShadow, Reflectance=obj.Reflectance}
+        if obj:IsA("MeshPart") then entry.RenderFidelity = obj.RenderFidelity end
+        OriginalStates.Parts[obj] = entry
+        pcall(function()
+            obj.CastShadow=false; obj.Reflectance=0
+            obj.Material = extremeMode and Enum.Material.Plastic or Enum.Material.SmoothPlastic
+            if obj:IsA("MeshPart") then obj.RenderFidelity = Enum.RenderFidelity.Performance end
+        end)
+        optimizedCount += 1
+    end
+end
+
+function AlternarBooster(Value)
+    isOptimized = Value
+    if isOptimized then
+        optimizedCount = 0
+        OriginalStates.Lighting = {
+            GlobalShadows=Lighting.GlobalShadows, Brightness=Lighting.Brightness, FogEnd=Lighting.FogEnd,
+            WaterWaveSize=workspace.Terrain.WaterWaveSize,
+            WaterWaveSpeed=workspace.Terrain.WaterWaveSpeed,
+            WaterReflectance=workspace.Terrain.WaterReflectance,
+        }
+        Lighting.GlobalShadows=false;
+        Lighting.Brightness=1; Lighting.FogEnd=1000000
+        workspace.Terrain.WaterWaveSize=0;
+        workspace.Terrain.WaterWaveSpeed=0
+        workspace.Terrain.WaterReflectance=0
+
+        for _, fx in ipairs(Lighting:GetChildren()) do
+            if fx:IsA("PostEffect") then
+                if not OriginalStates.Parts[fx] then
+                    OriginalStates.Parts[fx] = {_t="postfx", Enabled=fx.Enabled}
+                end
+                pcall(function() fx.Enabled=false end)
+            elseif fx:IsA("Sky") then
+                if not OriginalStates.Parts[fx] then
+                    OriginalStates.Parts[fx] = {_t="sky", Parent=fx.Parent}
+                end
+                pcall(function() 
+                    fx.Parent=OriginalStates.HiddenObjects end)
+            end
+        end
+        SetQuality("low")
+        local items = workspace:GetDescendants()
+        for idx, obj in ipairs(items) do
+            OtimizarInstancia(obj)
+            if idx % 180 == 0 then task.wait() end
+        end
+        descendantConn = workspace.DescendantAdded:Connect(OtimizarInstancia)
+        Notify("FPS Booster V7", "Limpeza concluída! "..optimizedCount.." objetos otimizados.", 5)
+    else
+        if descendantConn then descendantConn:Disconnect(); descendantConn = nil end
+        SetQuality("auto")
+        if OriginalStates.Lighting.GlobalShadows ~= nil then
+            Lighting.GlobalShadows=OriginalStates.Lighting.GlobalShadows
+            Lighting.Brightness=OriginalStates.Lighting.Brightness
+            Lighting.FogEnd=OriginalStates.Lighting.FogEnd
+            workspace.Terrain.WaterWaveSize=OriginalStates.Lighting.WaterWaveSize
+            workspace.Terrain.WaterWaveSpeed=OriginalStates.Lighting.WaterWaveSpeed
+            workspace.Terrain.WaterReflectance=OriginalStates.Lighting.WaterReflectance
+        end
+        local snap = {}
+        for obj, props in pairs(OriginalStates.Parts) do
+            snap[#snap+1] = {obj=obj, props=props}
+        end
+        for idx, entry in ipairs(snap) do
+            local obj, props = entry.obj, entry.props
+            pcall(function()
+                if typeof(obj) ~= "Instance" then return end
+                local t = props._t
+                if t=="model" or t=="pbr" or t=="sky" then
+                    if props.Parent then obj.Parent=props.Parent end
+                elseif t=="decal"   then obj.Transparency=props.Transparency
+                elseif t=="emitter" then obj.Enabled=props.Enabled
+                elseif t=="light"   then obj.Enabled=props.Enabled;
+                    obj.Brightness=props.Brightness
+                elseif t=="prompt"  then obj.MaxActivationDistance=props.MaxActivationDistance
+                elseif t=="postfx"  then obj.Enabled=props.Enabled
+                elseif t=="union" or t=="part" then
+                    obj.Material=props.Material;
+                    obj.CastShadow=props.CastShadow
+                    obj.Reflectance=props.Reflectance
+                    if props.RenderFidelity then obj.RenderFidelity=props.RenderFidelity end
+                end
+            end)
+            if idx % 180 == 0 then task.wait() end
+        end
+        for _, obj in ipairs(OriginalStates.HiddenObjects:GetChildren()) do
+            pcall(function()
+                local p = OriginalStates.Parts[obj]
+                if p and p.Parent then obj.Parent=p.Parent end
+            end)
+        end
+        OriginalStates.Parts = {}
+        OriginalStates.Lighting = {}
+        setmetatable(OriginalStates.Parts, {__mode="k"})
+        optimizedCount = 0
+        Notify("FPS Booster V7", "Gráficos nativos restaurados completamente.", 4)
+    end
+end
+
+-- ══════════════════════════════════════════════
+--  AUTO JJS — LOOP
+-- ══════════════════════════════════════════════
+local function clicarNoTap()
+    local pGui = Player:WaitForChild("PlayerGui")
+    for _, v in pairs(pGui:GetDescendants()) do
+        if v:IsA("GuiButton") and v.Visible and (
+            v.Name:upper():find("TAP") or
+            (v:FindFirstChild("TextLabel") and v.TextLabel.Text:upper():find("TAP"))
+        ) then
+            for _, ev in pairs({"Activated", "MouseButton1Click", "MouseButton1Down"}) do
+                pcall(function()
+                    if getconnections then
+                        for _, conn in pairs(getconnections(v[ev])) do
+                            conn:Fire()
+                        end
+                    end
+                end)
+            end
+        end
+    end
+end
+
+task.spawn(function()
+    while true do
+        task.wait(OmegaState.AutoJJS.Delay)
+        if OmegaState.AutoJJS.Enabled then pcall(clicarNoTap) end
+    end
+end)
+
+-- ══════════════════════════════════════════════
+--  REGENERAÇÃO DE VIDA — LOOP
+-- ══════════════════════════════════════════════
+task.spawn(function()
+    while true do
+        task.wait(0.5)
+        if OmegaState.Player.RegenEnabled then
+            pcall(function()
+                local char = Player.Character
+                if char and char:FindFirstChild("Humanoid") then
+                    local hum = char.Humanoid
+                    if hum.Health < hum.MaxHealth and hum.Health > 0 then
+                        hum.Health = hum.Health + 2
+                    end
+                end
+            end)
+        end
+    end
+end)
+
+-- ══════════════════════════════════════════════
+--  AIMBOT — SISTEMA COMPLETO
+-- ══════════════════════════════════════════════
+local function IsVisibleThroughWalls(part)
+    if not OmegaState.Aimbot.WallCheck then return true end
+    local cam = workspace.CurrentCamera
+    if not cam then return true end
+    local ray = Ray.new(cam.CFrame.Position, (part.Position - cam.CFrame.Position).Unit * 1000)
+    local hit = workspace:FindPartOnRayWithIgnoreList(ray, {Player.Character, part.Parent})
+    return hit == nil
+end
+
+local function CalculateBestTarget()
+    local cam = workspace.CurrentCamera
+    if not cam then return nil end
+    local center = Vector2.new(cam.ViewportSize.X/2, cam.ViewportSize.Y/2)
+    local chosen, shortest = nil, OmegaState.FOV.Radius
+
+    if OmegaState.Aimbot.TargetStick and OmegaState.Aimbot.CurrentTarget then
+        local t = OmegaState.Aimbot.CurrentTarget
+        if t and t.Parent and t.Parent:FindFirstChild("Humanoid")
+            and t.Parent.Humanoid.Health > 0 then
+            local _, onScreen = cam:WorldToViewportPoint(t.Position)
+            if onScreen then return t end
+        end
+    end
+
+    for _, p in ipairs(Players:GetPlayers()) do
+        if p ~= Player and p.Character
+            and p.Character:FindFirstChild("Humanoid")
+            and p.Character.Humanoid.Health > 0 then
+            if OmegaState.Aimbot.TeamCheck and p.Team == Player.Team then continue end
+            local bone = p.Character:FindFirstChild(OmegaState.Aimbot.TargetPart)
+            if bone and IsVisibleThroughWalls(bone) then
+                local sp, onScreen = cam:WorldToViewportPoint(bone.Position)
+                if onScreen then
+                    local dist = (Vector2.new(sp.X, sp.Y) - center).Magnitude
+                    if dist <= shortest then shortest = dist;
+                        chosen = bone end
+                end
+            end
+        end
+    end
+    return chosen
+end
+
+RunService.RenderStepped:Connect(function()
+    local cam = workspace.CurrentCamera
+    if not OmegaState.Aimbot.Enabled or not cam then return end
+    local target = CalculateBestTarget()
+    OmegaState.Aimbot.CurrentTarget = target
+    if target then
+        local pos = target.Position
+        if OmegaState.Aimbot.Prediction then
+            local hrp = target.Parent:FindFirstChild("HumanoidRootPart")
+            local vel = hrp and hrp.AssemblyLinearVelocity or Vector3.new()
+            pos = pos + (vel * OmegaState.Aimbot.PredictionFactor)
+        end
+        if OmegaState.Aimbot.AimLock then
+            cam.CFrame = cam.CFrame:Lerp(
+                CFrame.new(cam.CFrame.Position, pos),
+                OmegaState.Aimbot.Smoothness
+            )
+        end
+    end
+end)
+
+if hookmetamethod and typeof(hookmetamethod) == "function" then
+    local oldMeta
+    oldMeta = hookmetamethod(game, "__namecall", function(self, ...)
+        local method = getnamecallmethod()
+        local args = {...}
+        if OmegaState.Aimbot.Enabled and OmegaState.Aimbot.SilentAim
+            and OmegaState.Aimbot.CurrentTarget then
+            if method == "Raycast" or method == "FindPartOnRay"
+                or method == "FindPartOnRayWithIgnoreList" then
+                if math.random(1, 100) <= OmegaState.Aimbot.HitChance then
+                    local dest = OmegaState.Aimbot.CurrentTarget.Position
+                    if method == "Raycast" then
+                        args[2] = (dest - args[1]).Unit * 1000
+                    else
+                        args[1] = Ray.new(args[1].Origin, (dest - args[1].Origin).Unit * 1000)
+                    end
+                end
+            end
+        end
+        return oldMeta(self, unpack(args))
+    end)
+end
+
+-- ══════════════════════════════════════════════
+--  FOV CIRCLE — GUI (AJUSTE 3: MELHORIA VISUAL DE PULSO)
+-- ══════════════════════════════════════════════
+local FOVGui = Instance.new("ScreenGui")
+FOVGui.Name = "OmegaFOV";
+FOVGui.ResetOnSpawn = false; FOVGui.IgnoreGuiInset = true
+pcall(function() FOVGui.Parent = gethui and gethui() or CoreGui end)
+if not FOVGui.Parent then FOVGui.Parent = Player:WaitForChild("PlayerGui") end
+
+local CircleFrame = Instance.new("Frame")
+CircleFrame.BackgroundTransparency = 1;
+CircleFrame.AnchorPoint = Vector2.new(0.5,0.5)
+CircleFrame.Visible = false; CircleFrame.Parent = FOVGui
+local UICornerFOV = Instance.new("UICorner")
+UICornerFOV.CornerRadius = UDim.new(1,0);
+UICornerFOV.Parent = CircleFrame
+local UIStrokeFOV = Instance.new("UIStroke")
+UIStrokeFOV.ApplyStrokeMode = Enum.ApplyStrokeMode.Border; UIStrokeFOV.Parent = CircleFrame
+
+RunService.RenderStepped:Connect(function()
+    local cam = workspace.CurrentCamera
+    if cam and OmegaState.FOV.Visible then
+        local sx, sy = cam.ViewportSize.X, cam.ViewportSize.Y
+        if sx > 0 and sy > 0 then
+            CircleFrame.Position = UDim2.new(0,sx/2,0,sy/2)
+            
+            -- Pulso estético e gradiente sutil sem modificar a lógica original do raio real
+            local visualPulse = math.sin(os.clock() * 4) * 3
+            local dRadius = OmegaState.FOV.Radius + visualPulse
+            
+            CircleFrame.Size = UDim2.new(0, dRadius*2, 0, dRadius*2)
+            UIStrokeFOV.Thickness = OmegaState.FOV.Thickness
+            UIStrokeFOV.Color = OmegaState.FOV.Color
+            UIStrokeFOV.Transparency = 1 - OmegaState.FOV.Transparency
+            CircleFrame.Visible = true
+        else CircleFrame.Visible = false end
+    else
+        if CircleFrame then CircleFrame.Visible = false end
+    end
+end)
+
+-- ══════════════════════════════════════════════
+--  ESP — SISTEMA COMPLETO (AJUSTE 3: GRADIENTE ROTATIVO PREMIUM)
+-- ══════════════════════════════════════════════
+local ESPGui = Instance.new("ScreenGui")
+ESPGui.Name = "OmegaESP";
+ESPGui.ResetOnSpawn = false; ESPGui.IgnoreGuiInset = true
+pcall(function() ESPGui.Parent = gethui and gethui() or CoreGui end)
+if not ESPGui.Parent then ESPGui.Parent = Player:WaitForChild("PlayerGui") end
+
+local espObjects = {}
+
+local function CreateESP(player)
+    if espObjects[player] then return end
+    local objs = {}
+    local box = Instance.new("Frame")
+    box.BackgroundTransparency = 1;
+    box.Visible = false; box.Parent = ESPGui
+    local bStroke = Instance.new("UIStroke")
+    bStroke.Color = OmegaState.Visuals.ESP_Color;
+    bStroke.Thickness = 1.5; bStroke.Parent = box
+    
+    -- Efeito visual: Gradiente dinâmico nas bordas do ESP
+    local bGrad = Instance.new("UIGradient")
+    bGrad.Color = ColorSequence.new(OmegaState.Visuals.ESP_Color, Color3.fromRGB(255, 255, 255))
+    bGrad.Rotation = 0;
+    bGrad.Parent = bStroke
+    
+    objs.Box = box; objs.BoxStroke = bStroke;
+    objs.BoxGradient = bGrad
+    local hBg = Instance.new("Frame")
+    hBg.BackgroundColor3 = Color3.fromRGB(0,0,0);
+    hBg.BorderSizePixel = 0
+    hBg.Visible = false; hBg.Parent = ESPGui;
+    objs.HealthBg = hBg
+    local hFill = Instance.new("Frame")
+    hFill.BackgroundColor3 = Color3.fromRGB(0,255,0);
+    hFill.BorderSizePixel = 0
+    hFill.Parent = hBg; objs.HealthFill = hFill
+    local line = Instance.new("Frame")
+    line.BackgroundColor3 = OmegaState.Visuals.ESP_Color;
+    line.BorderSizePixel = 0
+    line.AnchorPoint = Vector2.new(0.5,0.5); line.Visible = false;
+    line.Parent = ESPGui
+    objs.Line = line
+    espObjects[player] = objs
+end
+
+local function RemoveESP(player)
+    if espObjects[player] then
+        for _, v in pairs(espObjects[player]) do pcall(function() v:Destroy() end) end
+        espObjects[player] = nil
+    end
+end
+
+Players.PlayerAdded:Connect(CreateESP)
+Players.PlayerRemoving:Connect(RemoveESP)
+for _, p in pairs(Players:GetPlayers()) do
+    if p ~= Player then CreateESP(p) end
+end
+
+RunService.RenderStepped:Connect(function()
+    local cam = workspace.CurrentCamera
+    if not cam then return end
+    for player, objs in pairs(espObjects) do
+        if OmegaState.Visuals.ESP_Enabled and player.Character
+            and player.Character:FindFirstChild("HumanoidRootPart")
+            and player.Character:FindFirstChild("Humanoid")
+            and player.Character.Humanoid.Health > 0 then
+            local hrp  = player.Character.HumanoidRootPart
+            local head = player.Character:FindFirstChild("Head")
+            if head and hrp then
+                 local hPos, onH = cam:WorldToViewportPoint(head.Position + Vector3.new(0,0.5,0))
+                local lPos, onL = cam:WorldToViewportPoint(hrp.Position  - Vector3.new(0,3,0))
+                if onH or onL then
+                    local height = math.abs(hPos.Y - lPos.Y)
+                    local width  = height / 2
+                    if OmegaState.Visuals.ESP_Box then
+                        objs.Box.Size = UDim2.new(0,width,0,height)
+                        objs.Box.Position = UDim2.new(0, hPos.X-width/2, 0, hPos.Y)
+                        
+                        -- Atualiza cor base e rotaciona o gradiente esteticamente a cada ciclo
+                        objs.BoxGradient.Color = ColorSequence.new(OmegaState.Visuals.ESP_Color, Color3.fromRGB(255,255,255))
+                        objs.BoxGradient.Rotation = (os.clock() * 120) % 360
+                        
+                        objs.Box.Visible = true
+                    else objs.Box.Visible = false end
+                    if OmegaState.Visuals.ESP_Health then
+                        local maxH = player.Character.Humanoid.MaxHealth
+                        local curH = player.Character.Humanoid.Health
+                        local pct  = curH / maxH
+                        objs.HealthBg.Size = UDim2.new(0,3,0,height)
+                        objs.HealthBg.Position = UDim2.new(0, hPos.X-width/2-6, 0, hPos.Y)
+                        objs.HealthFill.Size = UDim2.new(1,0,pct,0)
+                        objs.HealthFill.Position = UDim2.new(0,0,1-pct,0)
+                        objs.HealthFill.BackgroundColor3 = Color3.fromRGB(255-(pct*255), pct*255, 0)
+                        objs.HealthBg.Visible = true
+                    else objs.HealthBg.Visible = false end
+                    if OmegaState.Visuals.ESP_Line then
+                        local sx2 = cam.ViewportSize.X/2
+                        local sy2 = cam.ViewportSize.Y
+                        local ex, ey = hPos.X, lPos.Y
+                        local length = math.sqrt((ex-sx2)^2+(ey-sy2)^2)
+                        local cx2 = (sx2+ex)/2;
+                        local cy2 = (sy2+ey)/2
+                        local angle = math.atan2(ey-sy2, ex-sx2)
+                        objs.Line.Size = UDim2.new(0,length,0,1)
+                        objs.Line.Position = UDim2.new(0,cx2,0,cy2)
+                        objs.Line.Rotation = math.deg(angle)
+                        objs.Line.BackgroundColor3 = OmegaState.Visuals.ESP_Color
+                        objs.Line.Visible = true
+                    else objs.Line.Visible = false end
+                 else
+                    objs.Box.Visible=false;
+                    objs.HealthBg.Visible=false; objs.Line.Visible=false
+                end
+            end
+        else
+            objs.Box.Visible=false;
+            objs.HealthBg.Visible=false; objs.Line.Visible=false
+        end
+    end
+end)
+
+-- ══════════════════════════════════════════════
+--  VECTOR PARKOUR — PLATAFORMAS
+-- ══════════════════════════════════════════════
+local MasterFolder = workspace:FindFirstChild("Omega_Vectors_Core")
+    or Instance.new("Folder", workspace)
+MasterFolder.Name = "Omega_Vectors_Core"
+
+function RenderVectorPlatforms()
+    if OmegaState.VectorSystem.DataLoaded then return end
+    local ok, parsed = pcall(function()
+        return loadstring(game:HttpGet("https://pastebin.com/raw/WRWnUzeU"))()
+    end)
+    if ok and type(parsed) == "table" then
+        OmegaState.VectorSystem.torreData   = parsed.torreData   or {}
+        OmegaState.VectorSystem.deltaData   = parsed.deltaData   or {}
+        OmegaState.VectorSystem.parkourData = parsed.parkourData or {}
+    else
+        OmegaState.VectorSystem.torreData   = {{pos=Vector3.new(0,100,0),    size=Vector3.new(12,1,12)}}
+        OmegaState.VectorSystem.deltaData   = {{pos=Vector3.new(20,110,20),  size=Vector3.new(15,1,15)}}
+        OmegaState.VectorSystem.parkourData = {{pos=Vector3.new(-20,90,-20), size=Vector3.new(10,1,10)}}
+    end
+    local all = {}
+    for _, d in ipairs(OmegaState.VectorSystem.torreData)   do table.insert(all, d) end
+    for _, d in ipairs(OmegaState.VectorSystem.deltaData)   do table.insert(all, d) end
+    for _, d in ipairs(OmegaState.VectorSystem.parkourData) do table.insert(all, d) end
+    for _, data in ipairs(all) do
+        if data.pos and data.size then
+            local part = Instance.new("Part")
+            part.Size = data.size;
+            part.CFrame = CFrame.new(data.pos)
+            part.Anchored = true;
+            part.CanCollide = true
+            part.Material = Enum.Material.ForceField
+            part.Color = Color3.fromRGB(0,170,255);
+            part.Transparency = 0.5
+            part.Parent = MasterFolder
+            local box = Instance.new("SelectionBox")
+            box.Color3 = Color3.fromRGB(0,170,255);
+            box.LineThickness = 0.04
+            box.Adornee = part;
+            box.Parent = part
+            table.insert(OmegaState.VectorSystem.Pool, part)
+        end
+    end
+    OmegaState.VectorSystem.DataLoaded = true
+end
+
+function DestroyVectorPlatforms()
+    for _, inst in ipairs(OmegaState.VectorSystem.Pool) do
+        pcall(function() inst:Destroy() end)
+    end
+    table.clear(OmegaState.VectorSystem.Pool)
+    OmegaState.VectorSystem.DataLoaded = false
+end
+
+RunService.Heartbeat:Connect(function()
+    if not OmegaState.VectorSystem.Enabled then return end
+    local root = Player.Character and Player.Character:FindFirstChild("HumanoidRootPart")
+    if root then
+        local y = root.Position.Y
+        for _, block in ipairs(OmegaState.VectorSystem.Pool) do
+            if block and block.Parent then
+                block.CanCollide = (y > (block.Position.Y + (block.Size.Y/2) - 0.3))
+            end
+        end
+    end
+end)
+
+-- ══════════════════════════════════════════════
+--  INICIAR
+-- ══════════════════════════════════════════════
+PlayIntroAnimation()
